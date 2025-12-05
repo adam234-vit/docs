@@ -1,11 +1,11 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Excel-Claude Integration",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#6366f1",
+    "light": "#818cf8",
+    "dark": "#4f46e5"
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -44,6 +44,16 @@
               "ai-tools/claude-code",
               "ai-tools/windsurf"
             ]
+          },
+          {
+            "group": "Excel-Claude Integration",
+            "pages": [
+              "excel-integration",
+              "excel-architecture",
+              "excel-onedrive-setup",
+              "excel-claude-api",
+              "excel-examples"
+            ]
           }
         ]
       },
@@ -71,14 +81,19 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "Claude API Docs",
+          "href": "https://docs.anthropic.com",
+          "icon": "brain"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "Microsoft Graph API",
+          "href": "https://learn.microsoft.com/en-us/graph/",
+          "icon": "cloud"
+        },
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com",
+          "icon": "github"
         }
       ]
     }
@@ -90,14 +105,14 @@
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Get API Key",
+        "href": "https://console.anthropic.com"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Get Started",
+      "href": "/excel-integration"
     }
   },
   "contextual": {
@@ -114,9 +129,8 @@
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com",
+      "x": "https://x.com/AnthropicAI"
     }
   }
 }

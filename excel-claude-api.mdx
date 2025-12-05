@@ -1,0 +1,760 @@
+---
+title: "Claude API Integration"
+description: "Integrate Claude's AI capabilities to analyze Excel data"
+icon: "brain"
+---
+
+## Overview
+
+This guide shows how to integrate Claude's Frontier AI models with your Excel data. Claude can analyze spreadsheets, generate insights, create formulas, and provide intelligent recommendations.
+
+<Info>
+  You'll need an Anthropic API key to complete this integration. [Get your API key →](https://console.anthropic.com/)
+</Info>
+
+## Getting Started
+
+### Step 1: Get API Key
+
+<Steps>
+  <Step title="Sign up for Anthropic">
+    Create an account at [console.anthropic.com](https://console.anthropic.com)
+  </Step>
+
+  <Step title="Generate API Key">
+    Navigate to **Settings** → **API Keys** and create a new key
+  </Step>
+
+  <Step title="Store Securely">
+    Save your API key as an environment variable:
+
+    ```bash
+    export ANTHROPIC_API_KEY="sk-ant-api03-..."
+    ```
+
+    <Warning>
+      Never commit API keys to version control. Use environment variables or secret managers.
+    </Warning>
+  </Step>
+</Steps>
+
+## Model Selection
+
+Choose the right Claude model for your use case:
+
+<CardGroup cols={2}>
+  <Card title="Claude Sonnet 4.5" icon="bolt">
+    **Best for**: Balanced performance and cost
+
+    - Model ID: `claude-sonnet-4-5-20250929`
+    - Fast responses
+    - High accuracy
+    - Ideal for most Excel analysis tasks
+  </Card>
+
+  <Card title="Claude Opus 4" icon="brain">
+    **Best for**: Complex analysis
+
+    - Model ID: `claude-opus-4-20250514`
+    - Highest intelligence
+    - Deep reasoning capabilities
+    - Best for complex financial modeling
+  </Card>
+
+  <Card title="Claude Haiku 4" icon="zap">
+    **Best for**: Speed and cost optimization
+
+    - Model ID: `claude-haiku-4-20250514`
+    - Fastest responses
+    - Most cost-effective
+    - Great for simple data validation
+  </Card>
+
+  <Card title="Extended Context" icon="expand">
+    **For large spreadsheets**
+
+    - All models support 200K tokens
+    - Analyze entire workbooks
+    - Process multiple worksheets at once
+  </Card>
+</CardGroup>
+
+## Installation
+
+<Tabs>
+  <Tab title="Node.js">
+    ```bash
+    npm install @anthropic-ai/sdk
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```bash
+    pip install anthropic
+    ```
+  </Tab>
+
+  <Tab title="cURL">
+    No installation needed - use direct HTTP requests
+  </Tab>
+</Tabs>
+
+## Basic Usage
+
+### Analyze Excel Data
+
+<CodeGroup>
+```javascript Node.js
+const Anthropic = require('@anthropic-ai/sdk');
+
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+async function analyzeExcelData(tableData) {
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-5-20250929',
+    max_tokens: 4096,
+    messages: [{
+      role: 'user',
+      content: `Analyze this Excel table data and provide key insights:
+
+Headers: ${JSON.stringify(tableData.headers)}
+Data: ${JSON.stringify(tableData.rows.slice(0, 100))}
+
+Please provide:
+1. Summary statistics
+2. Key trends
+3. Anomalies or outliers
+4. Recommendations`
+    }]
+  });
+
+  return message.content[0].text;
+}
+
+// Example usage
+const data = {
+  headers: ['Date', 'Revenue', 'Expenses', 'Profit'],
+  rows: [
+    ['2024-01-01', 50000, 30000, 20000],
+    ['2024-02-01', 55000, 32000, 23000],
+    // ... more rows
+  ]
+};
+
+const analysis = await analyzeExcelData(data);
+console.log(analysis);
+```
+
+```python Python
+import anthropic
+import os
+import json
+
+client = anthropic.Anthropic(
+    api_key=os.environ.get("ANTHROPIC_API_KEY")
+)
+
+def analyze_excel_data(table_data):
+    message = client.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=4096,
+        messages=[{
+            "role": "user",
+            "content": f"""Analyze this Excel table data and provide key insights:
+
+Headers: {json.dumps(table_data['headers'])}
+Data: {json.dumps(table_data['rows'][:100])}
+
+Please provide:
+1. Summary statistics
+2. Key trends
+3. Anomalies or outliers
+4. Recommendations"""
+        }]
+    )
+
+    return message.content[0].text
+
+# Example usage
+data = {
+    'headers': ['Date', 'Revenue', 'Expenses', 'Profit'],
+    'rows': [
+        ['2024-01-01', 50000, 30000, 20000],
+        ['2024-02-01', 55000, 32000, 23000],
+        # ... more rows
+    ]
+}
+
+analysis = analyze_excel_data(data)
+print(analysis)
+```
+
+```bash cURL
+curl https://api.anthropic.com/v1/messages \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "content-type: application/json" \
+  -d '{
+    "model": "claude-sonnet-4-5-20250929",
+    "max_tokens": 4096,
+    "messages": [{
+      "role": "user",
+      "content": "Analyze this Excel data: [your data here]"
+    }]
+  }'
+```
+</CodeGroup>
+
+## Advanced Use Cases
+
+### 1. Financial Statement Analysis
+
+```javascript
+async function analyzeFinancialStatement(data) {
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-5-20250929',
+    max_tokens: 8192,
+    messages: [{
+      role: 'user',
+      content: `You are a financial analyst. Analyze this income statement:
+
+${JSON.stringify(data, null, 2)}
+
+Provide:
+1. Financial ratios (profit margin, ROI, etc.)
+2. Year-over-year growth analysis
+3. Cost structure analysis
+4. Recommendations for cost optimization
+5. Risk assessment
+
+Format your response as a structured report.`
+    }]
+  });
+
+  return message.content[0].text;
+}
+```
+
+### 2. Data Quality Validation
+
+```python
+def validate_data_quality(data):
+    """Check for missing values, duplicates, and anomalies"""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=4096,
+        messages=[{
+            "role": "user",
+            "content": f"""Analyze this dataset for data quality issues:
+
+{json.dumps(data, indent=2)}
+
+Check for:
+1. Missing or null values
+2. Duplicate rows
+3. Outliers or anomalies
+4. Inconsistent formatting
+5. Logical errors (e.g., negative quantities, invalid dates)
+
+Provide specific row numbers and recommendations for fixing each issue."""
+        }]
+    )
+
+    return message.content[0].text
+```
+
+### 3. Formula Generation
+
+```javascript
+async function generateExcelFormula(description, sampleData) {
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-5-20250929',
+    max_tokens: 2048,
+    messages: [{
+      role: 'user',
+      content: `Generate an Excel formula for the following requirement:
+
+Requirement: ${description}
+
+Sample data structure:
+${JSON.stringify(sampleData, null, 2)}
+
+Provide:
+1. The Excel formula
+2. Explanation of how it works
+3. Example calculation
+4. Alternative approaches if applicable`
+    }]
+  });
+
+  return message.content[0].text;
+}
+
+// Example usage
+const formula = await generateExcelFormula(
+  'Calculate the compound annual growth rate (CAGR) between starting value in A2 and ending value in A10 over 8 years',
+  {
+    'A2': 100000,
+    'A10': 180000,
+    'B2': 'Years: 8'
+  }
+);
+```
+
+### 4. Automated Reporting
+
+```python
+def generate_executive_summary(workbook_data):
+    """Generate executive summary from multiple worksheets"""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=8192,
+        messages=[{
+            "role": "user",
+            "content": f"""Create an executive summary from this workbook data:
+
+Sales Data: {json.dumps(workbook_data['sales'])}
+Expenses Data: {json.dumps(workbook_data['expenses'])}
+Inventory Data: {json.dumps(workbook_data['inventory'])}
+
+Generate a comprehensive executive summary with:
+1. Key performance indicators
+2. Month-over-month trends
+3. Notable achievements
+4. Areas of concern
+5. Strategic recommendations
+
+Format as a professional business report."""
+        }]
+    )
+
+    return message.content[0].text
+```
+
+### 5. Predictive Analysis
+
+```javascript
+async function predictTrends(historicalData) {
+  const message = await client.messages.create({
+    model: 'claude-opus-4-20250514',  // Use Opus for complex predictions
+    max_tokens: 8192,
+    messages: [{
+      role: 'user',
+      content: `Based on this historical data, predict future trends:
+
+${JSON.stringify(historicalData, null, 2)}
+
+Provide:
+1. Trend analysis (upward, downward, seasonal)
+2. 3-month forecast with confidence intervals
+3. Key factors influencing the trend
+4. Potential risks and opportunities
+5. Recommended actions
+
+Include specific numerical predictions where possible.`
+    }]
+  });
+
+  return message.content[0].text;
+}
+```
+
+## Structured Output
+
+Use JSON mode for structured responses:
+
+```javascript
+async function analyzeDataStructured(data) {
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-5-20250929',
+    max_tokens: 4096,
+    messages: [{
+      role: 'user',
+      content: `Analyze this data and respond in JSON format:
+
+${JSON.stringify(data)}
+
+Return a JSON object with this structure:
+{
+  "summary": {
+    "total_rows": number,
+    "total_columns": number,
+    "date_range": {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}
+  },
+  "statistics": {
+    "column_name": {
+      "min": number,
+      "max": number,
+      "avg": number,
+      "median": number
+    }
+  },
+  "insights": [
+    {"type": "trend|anomaly|recommendation", "description": "..."}
+  ],
+  "data_quality": {
+    "missing_values": number,
+    "duplicate_rows": number,
+    "issues": ["..."]
+  }
+}`
+    }]
+  });
+
+  return JSON.parse(message.content[0].text);
+}
+```
+
+## Error Handling
+
+Implement robust error handling:
+
+```javascript
+class ClaudeExcelError extends Error {
+  constructor(message, type, originalError) {
+    super(message);
+    this.type = type;
+    this.originalError = originalError;
+  }
+}
+
+async function analyzeWithRetry(data, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const result = await client.messages.create({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: JSON.stringify(data) }]
+      });
+
+      return result.content[0].text;
+
+    } catch (error) {
+      // Rate limit error
+      if (error.status === 429) {
+        const retryAfter = error.headers?.['retry-after'] || Math.pow(2, attempt);
+        console.log(`Rate limited. Retrying after ${retryAfter}s...`);
+        await sleep(retryAfter * 1000);
+        continue;
+      }
+
+      // Overloaded error
+      if (error.status === 529) {
+        console.log(`Service overloaded. Retrying attempt ${attempt + 1}...`);
+        await sleep(Math.pow(2, attempt) * 1000);
+        continue;
+      }
+
+      // Other errors
+      throw new ClaudeExcelError(
+        `Failed to analyze data: ${error.message}`,
+        'api_error',
+        error
+      );
+    }
+  }
+
+  throw new ClaudeExcelError(
+    `Failed after ${maxRetries} attempts`,
+    'max_retries_exceeded'
+  );
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+```
+
+## Optimization Tips
+
+<AccordionGroup>
+  <Accordion title="Reduce Token Usage">
+    **Strategies**:
+    - Send only relevant data columns
+    - Limit rows to representative sample
+    - Use data summaries for large datasets
+    - Cache responses for identical queries
+
+    ```javascript
+    function optimizeDataForClaude(data, maxRows = 100) {
+      return {
+        headers: data.headers,
+        rows: data.rows.slice(0, maxRows),
+        total_rows: data.rows.length,
+        sample_note: `Showing first ${maxRows} of ${data.rows.length} rows`
+      };
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Batch Processing">
+    **Process multiple worksheets efficiently**:
+
+    ```javascript
+    async function batchAnalyze(worksheets) {
+      const prompt = worksheets.map((ws, i) =>
+        `Worksheet ${i + 1} (${ws.name}):\n${JSON.stringify(ws.data)}`
+      ).join('\n\n');
+
+      return await client.messages.create({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 8192,
+        messages: [{
+          role: 'user',
+          content: `Analyze these ${worksheets.length} worksheets:\n\n${prompt}`
+        }]
+      });
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Streaming Responses">
+    **Get results faster with streaming**:
+
+    ```javascript
+    async function analyzeWithStreaming(data) {
+      const stream = await client.messages.create({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 4096,
+        stream: true,
+        messages: [{
+          role: 'user',
+          content: `Analyze: ${JSON.stringify(data)}`
+        }]
+      });
+
+      let fullResponse = '';
+
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta') {
+          const text = event.delta.text;
+          fullResponse += text;
+          process.stdout.write(text);  // Stream to user in real-time
+        }
+      }
+
+      return fullResponse;
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Caching for Cost Reduction">
+    **Use prompt caching for repeated queries**:
+
+    ```javascript
+    async function analyzeWithCache(data, schema) {
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 4096,
+        system: [
+          {
+            type: 'text',
+            text: `You are analyzing Excel data with this schema: ${JSON.stringify(schema)}`,
+            cache_control: { type: 'ephemeral' }  // Cache this
+          }
+        ],
+        messages: [{
+          role: 'user',
+          content: JSON.stringify(data)
+        }]
+      });
+
+      return message;
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Complete Integration Example
+
+Here's a full example combining OneDrive and Claude:
+
+<CodeGroup>
+```javascript complete-integration.js
+const Anthropic = require('@anthropic-ai/sdk');
+const { getAccessToken, getWorksheetData, updateRange } = require('./onedrive-client');
+
+const claude = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY
+});
+
+async function analyzeExcelFile(fileId, worksheetName) {
+  console.log('📊 Fetching Excel data from OneDrive...');
+
+  // 1. Get OneDrive access token
+  const token = await getAccessToken();
+
+  // 2. Read worksheet data
+  const data = await getWorksheetData(token, fileId, worksheetName);
+
+  console.log('🤖 Analyzing with Claude...');
+
+  // 3. Analyze with Claude
+  const message = await claude.messages.create({
+    model: 'claude-sonnet-4-5-20250929',
+    max_tokens: 4096,
+    messages: [{
+      role: 'user',
+      content: `Analyze this Excel worksheet data:
+
+Headers: ${JSON.stringify(data.values[0])}
+Data (first 50 rows): ${JSON.stringify(data.values.slice(1, 51))}
+Total rows: ${data.values.length}
+
+Provide:
+1. Executive summary
+2. Key statistics
+3. Notable patterns or anomalies
+4. Recommendations`
+    }]
+  });
+
+  const analysis = message.content[0].text;
+
+  console.log('💾 Writing results back to Excel...');
+
+  // 4. Write analysis to new worksheet or cell
+  await updateRange(
+    token,
+    fileId,
+    'Analysis',  // Write to 'Analysis' worksheet
+    'A1',
+    [[analysis]]
+  );
+
+  console.log('✅ Complete!');
+  return analysis;
+}
+
+// Usage
+analyzeExcelFile('file-id-here', 'Sheet1')
+  .then(result => console.log('Analysis:', result))
+  .catch(error => console.error('Error:', error));
+```
+
+```python complete-integration.py
+import anthropic
+import os
+from onedrive_client import OneDriveClient
+
+claude = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+onedrive = OneDriveClient()
+
+def analyze_excel_file(file_id, worksheet_name='Sheet1'):
+    print('📊 Fetching Excel data from OneDrive...')
+
+    # 1. Authenticate with OneDrive
+    onedrive.authenticate()
+
+    # 2. Read worksheet data
+    data = onedrive.get_worksheet_data(file_id, worksheet_name)
+
+    print('🤖 Analyzing with Claude...')
+
+    # 3. Analyze with Claude
+    message = claude.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=4096,
+        messages=[{
+            "role": "user",
+            "content": f"""Analyze this Excel worksheet data:
+
+Headers: {data['values'][0]}
+Data (first 50 rows): {data['values'][1:51]}
+Total rows: {len(data['values'])}
+
+Provide:
+1. Executive summary
+2. Key statistics
+3. Notable patterns or anomalies
+4. Recommendations"""
+        }]
+    )
+
+    analysis = message.content[0].text
+
+    print('💾 Writing results back to Excel...')
+
+    # 4. Write analysis back to Excel
+    onedrive.update_range(
+        file_id,
+        'Analysis',  # Write to 'Analysis' worksheet
+        'A1',
+        [[analysis]]
+    )
+
+    print('✅ Complete!')
+    return analysis
+
+# Usage
+if __name__ == '__main__':
+    result = analyze_excel_file('file-id-here', 'Sheet1')
+    print('Analysis:', result)
+```
+</CodeGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Prompt Engineering" icon="wand-magic-sparkles">
+    Write clear, specific prompts with context about your data and desired output format
+  </Card>
+
+  <Card title="Token Management" icon="coins">
+    Monitor token usage and optimize prompts to reduce costs
+  </Card>
+
+  <Card title="Error Recovery" icon="shield-check">
+    Implement retry logic with exponential backoff for API failures
+  </Card>
+
+  <Card title="Result Validation" icon="check-double">
+    Validate Claude's outputs before writing back to Excel
+  </Card>
+
+  <Card title="Version Control" icon="code-branch">
+    Keep backups before making automated changes to spreadsheets
+  </Card>
+
+  <Card title="Audit Logging" icon="file-lines">
+    Log all analyses for compliance and debugging
+  </Card>
+</CardGroup>
+
+## Rate Limits & Pricing
+
+<Tabs>
+  <Tab title="Rate Limits">
+    | Tier | Requests/min | Tokens/min |
+    |------|--------------|------------|
+    | Free | 5 | 50,000 |
+    | Build Tier 1 | 50 | 50,000 |
+    | Build Tier 2 | 50 | 100,000 |
+    | Build Tier 3 | 50 | 200,000 |
+    | Build Tier 4 | 50 | 400,000 |
+
+    [View current limits →](https://docs.anthropic.com/en/api/rate-limits)
+  </Tab>
+
+  <Tab title="Pricing">
+    | Model | Input | Output |
+    |-------|-------|--------|
+    | Sonnet 4.5 | $3 / MTok | $15 / MTok |
+    | Opus 4 | $15 / MTok | $75 / MTok |
+    | Haiku 4 | $0.30 / MTok | $1.50 / MTok |
+
+    **Prompt Caching**: 90% discount on cached inputs
+
+    [View current pricing →](https://www.anthropic.com/pricing)
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+<Card title="Complete Examples" icon="code" href="/excel-examples">
+  View complete implementation examples and use cases
+</Card>
