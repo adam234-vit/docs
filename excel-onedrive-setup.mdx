@@ -1,0 +1,512 @@
+---
+title: OneDrive Setup
+description: "Configure Microsoft OneDrive integration for Excel-Claude"
+---
+
+## Prerequisites
+
+Before setting up OneDrive integration, ensure you have:
+
+- Microsoft 365 account (Personal, Business, or Enterprise)
+- Admin access to Azure portal (for app registration)
+- OneDrive storage with Excel files
+- Basic understanding of OAuth 2.0
+
+## Setup Overview
+
+The setup process involves three main steps:
+
+<Steps>
+  <Step title="Register Azure Application">
+    Create an app registration in Azure portal
+  </Step>
+  <Step title="Configure Permissions">
+    Set up API permissions for Microsoft Graph
+  </Step>
+  <Step title="Configure Application">
+    Add credentials to your application
+  </Step>
+</Steps>
+
+## Step 1: Register Azure Application
+
+### Create App Registration
+
+1. Navigate to [Azure Portal](https://portal.azure.com)
+2. Go to **Azure Active Directory** > **App registrations**
+3. Click **New registration**
+
+<Frame>
+  <img src="/images/azure-app-registration.png" alt="Azure App Registration" />
+</Frame>
+
+4. Fill in the application details:
+
+<ParamField path="Name" type="string" required>
+  Choose a descriptive name (e.g., "Excel-Claude Integration")
+</ParamField>
+
+<ParamField path="Supported account types" type="enum" required>
+  Select the appropriate option:
+  - **Single tenant**: Only your organization
+  - **Multi-tenant**: Any Azure AD directory
+  - **Personal accounts**: Include Microsoft personal accounts
+</ParamField>
+
+<ParamField path="Redirect URI" type="string">
+  Add your application's callback URL:
+  ```
+  https://your-app.com/auth/callback
+  ```
+
+  For local development:
+  ```
+  http://localhost:3000/auth/callback
+  ```
+</ParamField>
+
+5. Click **Register**
+
+### Save Application Credentials
+
+After registration, save these values securely:
+
+<CodeGroup>
+```bash Environment Variables
+AZURE_CLIENT_ID=your-application-client-id
+AZURE_TENANT_ID=your-tenant-id
+AZURE_CLIENT_SECRET=your-client-secret
+```
+
+```json .env.local
+{
+  "azure": {
+    "clientId": "your-application-client-id",
+    "tenantId": "your-tenant-id",
+    "clientSecret": "your-client-secret",
+    "redirectUri": "http://localhost:3000/auth/callback"
+  }
+}
+```
+</CodeGroup>
+
+<Warning>
+  Never commit client secrets to version control. Use environment variables or secure secret management.
+</Warning>
+
+## Step 2: Configure API Permissions
+
+### Add Microsoft Graph Permissions
+
+1. In your app registration, go to **API permissions**
+2. Click **Add a permission** > **Microsoft Graph**
+3. Select **Delegated permissions**
+
+### Required Permissions
+
+Add the following permissions:
+
+<AccordionGroup>
+  <Accordion title="Files Permissions" icon="file" defaultOpen>
+    <ParamField path="Files.Read" type="permission">
+      Read files in OneDrive
+    </ParamField>
+
+    <ParamField path="Files.Read.All" type="permission">
+      Read all files user can access
+    </ParamField>
+
+    <ParamField path="Files.ReadWrite" type="permission">
+      Read and write files in OneDrive
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="User Permissions" icon="user">
+    <ParamField path="User.Read" type="permission">
+      Sign in and read user profile
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Sites Permissions (Optional)" icon="sitemap">
+    <ParamField path="Sites.Read.All" type="permission">
+      Access SharePoint sites (for business accounts)
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+### Grant Admin Consent
+
+<Info>
+  For organizational accounts, admin consent may be required for certain permissions.
+</Info>
+
+1. Click **Grant admin consent for [Your Organization]**
+2. Confirm the action
+3. Verify all permissions show "Granted" status
+
+<Frame>
+  <img src="/images/api-permissions-granted.png" alt="API Permissions Granted" />
+</Frame>
+
+## Step 3: Configure Application
+
+### Generate Client Secret
+
+1. Go to **Certificates & secrets** in your app registration
+2. Click **New client secret**
+3. Add a description and select expiration period:
+   - 6 months (recommended for development)
+   - 12 months
+   - 24 months
+   - Custom
+
+<Warning>
+  Client secrets expire! Set a calendar reminder to rotate before expiration.
+</Warning>
+
+4. Click **Add** and immediately copy the secret value
+5. Store the secret securely (you can't view it again)
+
+### Configure Authentication
+
+1. Go to **Authentication** in your app registration
+2. Under **Platform configurations**, verify your redirect URIs
+3. Under **Implicit grant and hybrid flows**, enable:
+   - ✅ Access tokens (optional, for SPA)
+   - ✅ ID tokens
+
+4. Under **Advanced settings**, set:
+   - **Allow public client flows**: No (for web apps)
+   - **Enable the following mobile and desktop flows**: No
+
+### Configure Token Settings
+
+<Tabs>
+  <Tab title="Access Tokens">
+    - **Default lifetime**: 1 hour
+    - **Maximum lifetime**: 24 hours
+    - Automatically refreshed using refresh token
+  </Tab>
+
+  <Tab title="Refresh Tokens">
+    - **Default lifetime**: 90 days
+    - **Maximum lifetime**: 1 year
+    - Configure in **Token configuration**
+  </Tab>
+
+  <Tab title="ID Tokens">
+    - Used for user authentication
+    - Contains user profile claims
+    - Valid for 1 hour
+  </Tab>
+</Tabs>
+
+## Step 4: Implement OAuth Flow
+
+### Backend Implementation
+
+<CodeGroup>
+```javascript Express.js
+const express = require('express');
+const msal = require('@azure/msal-node');
+
+const config = {
+  auth: {
+    clientId: process.env.AZURE_CLIENT_ID,
+    authority: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}`,
+    clientSecret: process.env.AZURE_CLIENT_SECRET,
+  },
+  system: {
+    loggerOptions: {
+      loggerCallback: (level, message) => console.log(message),
+      piiLoggingEnabled: false,
+      logLevel: msal.LogLevel.Info,
+    },
+  },
+};
+
+const cca = new msal.ConfidentialClientApplication(config);
+
+app.get('/auth/login', (req, res) => {
+  const authCodeUrlParameters = {
+    scopes: ['Files.ReadWrite', 'User.Read'],
+    redirectUri: process.env.REDIRECT_URI,
+  };
+
+  cca.getAuthCodeUrl(authCodeUrlParameters)
+    .then((response) => res.redirect(response))
+    .catch((error) => console.log(JSON.stringify(error)));
+});
+
+app.get('/auth/callback', async (req, res) => {
+  const tokenRequest = {
+    code: req.query.code,
+    scopes: ['Files.ReadWrite', 'User.Read'],
+    redirectUri: process.env.REDIRECT_URI,
+  };
+
+  try {
+    const response = await cca.acquireTokenByCode(tokenRequest);
+    req.session.accessToken = response.accessToken;
+    res.redirect('/dashboard');
+  } catch (error) {
+    console.error(error);
+    res.redirect('/error');
+  }
+});
+```
+
+```typescript Next.js (TypeScript)
+import { ConfidentialClientApplication } from '@azure/msal-node';
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+const msalConfig = {
+  auth: {
+    clientId: process.env.AZURE_CLIENT_ID!,
+    authority: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}`,
+    clientSecret: process.env.AZURE_CLIENT_SECRET!,
+  },
+};
+
+const cca = new ConfidentialClientApplication(msalConfig);
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method === 'GET' && req.url === '/api/auth/login') {
+    const authUrl = await cca.getAuthCodeUrl({
+      scopes: ['Files.ReadWrite', 'User.Read'],
+      redirectUri: process.env.REDIRECT_URI!,
+    });
+    res.redirect(authUrl);
+  }
+
+  if (req.method === 'GET' && req.url?.startsWith('/api/auth/callback')) {
+    const { code } = req.query;
+    const tokenResponse = await cca.acquireTokenByCode({
+      code: code as string,
+      scopes: ['Files.ReadWrite', 'User.Read'],
+      redirectUri: process.env.REDIRECT_URI!,
+    });
+
+    // Store token in session or secure cookie
+    res.redirect('/dashboard');
+  }
+}
+```
+
+```python Python (Flask)
+from flask import Flask, redirect, request, session
+from msal import ConfidentialClientApplication
+import os
+
+app = Flask(__name__)
+app.secret_key = os.urandom(24)
+
+msal_app = ConfidentialClientApplication(
+    client_id=os.getenv('AZURE_CLIENT_ID'),
+    client_credential=os.getenv('AZURE_CLIENT_SECRET'),
+    authority=f"https://login.microsoftonline.com/{os.getenv('AZURE_TENANT_ID')}"
+)
+
+SCOPES = ['Files.ReadWrite', 'User.Read']
+
+@app.route('/auth/login')
+def login():
+    auth_url = msal_app.get_authorization_request_url(
+        scopes=SCOPES,
+        redirect_uri=os.getenv('REDIRECT_URI')
+    )
+    return redirect(auth_url)
+
+@app.route('/auth/callback')
+def callback():
+    code = request.args.get('code')
+    result = msal_app.acquire_token_by_authorization_code(
+        code=code,
+        scopes=SCOPES,
+        redirect_uri=os.getenv('REDIRECT_URI')
+    )
+
+    if 'access_token' in result:
+        session['access_token'] = result['access_token']
+        return redirect('/dashboard')
+
+    return 'Authentication failed', 400
+```
+</CodeGroup>
+
+### Token Refresh
+
+Implement automatic token refresh:
+
+<CodeGroup>
+```javascript Token Refresh
+async function getAccessToken() {
+  const tokenCache = await cca.getTokenCache();
+  const accounts = await tokenCache.getAllAccounts();
+
+  if (accounts.length === 0) {
+    throw new Error('No cached accounts found');
+  }
+
+  const silentRequest = {
+    account: accounts[0],
+    scopes: ['Files.ReadWrite', 'User.Read'],
+  };
+
+  try {
+    const response = await cca.acquireTokenSilent(silentRequest);
+    return response.accessToken;
+  } catch (error) {
+    if (error.name === 'InteractionRequiredAuthError') {
+      // User needs to sign in again
+      throw new Error('Re-authentication required');
+    }
+    throw error;
+  }
+}
+```
+
+```typescript Axios Interceptor
+import axios from 'axios';
+
+const graphClient = axios.create({
+  baseURL: 'https://graph.microsoft.com/v1.0',
+});
+
+graphClient.interceptors.request.use(async (config) => {
+  const token = await getAccessToken();
+  config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+graphClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      // Token expired, refresh and retry
+      await refreshToken();
+      return graphClient(error.config);
+    }
+    return Promise.reject(error);
+  }
+);
+```
+</CodeGroup>
+
+## Testing the Integration
+
+### Verify Authentication
+
+<Tabs>
+  <Tab title="Test User Login">
+    ```bash
+    curl -X GET http://localhost:3000/auth/login
+    ```
+
+    Should redirect to Microsoft login page
+  </Tab>
+
+  <Tab title="Test Token">
+    ```bash
+    curl -X GET https://graph.microsoft.com/v1.0/me \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+    ```
+
+    Should return user profile
+  </Tab>
+
+  <Tab title="Test OneDrive Access">
+    ```bash
+    curl -X GET https://graph.microsoft.com/v1.0/me/drive/root/children \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+    ```
+
+    Should list OneDrive files
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Error: AADSTS65001 - User consent required" icon="circle-exclamation">
+    **Solution**: Grant admin consent for the permissions in Azure portal
+
+    Or add `prompt=consent` to the authorization URL:
+    ```javascript
+    const authUrl = await cca.getAuthCodeUrl({
+      scopes: SCOPES,
+      redirectUri: REDIRECT_URI,
+      prompt: 'consent'
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Error: AADSTS700016 - Application not found" icon="circle-exclamation">
+    **Solution**: Verify the client ID and tenant ID are correct
+
+    Check that the application exists in the correct Azure AD tenant
+  </Accordion>
+
+  <Accordion title="Error: Invalid redirect URI" icon="circle-exclamation">
+    **Solution**: Ensure the redirect URI in code exactly matches Azure portal
+
+    - Check for trailing slashes
+    - Verify http vs https
+    - Confirm port numbers match
+  </Accordion>
+
+  <Accordion title="Token refresh fails" icon="circle-exclamation">
+    **Solution**: Check token cache and refresh token validity
+
+    - Refresh tokens expire after 90 days by default
+    - Users need to re-authenticate after expiration
+    - Implement proper error handling for token refresh
+  </Accordion>
+</AccordionGroup>
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Secure Storage" icon="lock">
+    - Use Azure Key Vault for secrets
+    - Never commit credentials
+    - Rotate secrets regularly
+    - Use managed identities when possible
+  </Card>
+
+  <Card title="Token Management" icon="key">
+    - Implement token caching
+    - Use secure session storage
+    - Set appropriate token lifetimes
+    - Handle token refresh properly
+  </Card>
+
+  <Card title="Access Control" icon="shield">
+    - Request minimum permissions
+    - Implement role-based access
+    - Audit permission usage
+    - Review permissions regularly
+  </Card>
+
+  <Card title="Monitoring" icon="chart-line">
+    - Log authentication events
+    - Monitor failed auth attempts
+    - Track token refresh failures
+    - Set up alerts for anomalies
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/excel-claude-api">
+    Learn how to use the Excel-Claude API
+  </Card>
+
+  <Card title="Examples" icon="lightbulb" href="/excel-examples">
+    Explore practical implementation examples
+  </Card>
+</CardGroup>
