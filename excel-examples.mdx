@@ -1,0 +1,983 @@
+---
+title: "Code Examples"
+description: "Complete implementation examples for Excel-Claude integration"
+icon: "code"
+---
+
+## Complete Implementation Examples
+
+This page provides ready-to-use code examples for common Excel-Claude integration scenarios.
+
+## Example 1: Financial Statement Analyzer
+
+Analyze income statements and generate financial insights.
+
+<CodeGroup>
+```javascript financial-analyzer.js
+const Anthropic = require('@anthropic-ai/sdk');
+const { getWorksheetData, updateRange } = require('./onedrive-client');
+
+class FinancialAnalyzer {
+  constructor(anthropicKey) {
+    this.claude = new Anthropic({ apiKey: anthropicKey });
+  }
+
+  async analyzeIncomeStatement(token, fileId, worksheetName) {
+    // Fetch financial data from Excel
+    const data = await getWorksheetData(token, fileId, worksheetName);
+
+    // Extract headers and rows
+    const headers = data.values[0];
+    const rows = data.values.slice(1);
+
+    // Create structured financial data
+    const financialData = this.structureFinancialData(headers, rows);
+
+    // Analyze with Claude
+    const analysis = await this.claude.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 8192,
+      messages: [{
+        role: 'user',
+        content: `Analyze this income statement:
+
+${JSON.stringify(financialData, null, 2)}
+
+Provide a comprehensive financial analysis including:
+
+1. **Financial Ratios**
+   - Gross Profit Margin
+   - Operating Profit Margin
+   - Net Profit Margin
+   - Return on Revenue
+
+2. **Trend Analysis**
+   - Revenue growth trends
+   - Expense trends
+   - Profitability trends
+
+3. **Cost Structure Analysis**
+   - Cost of Goods Sold as % of Revenue
+   - Operating Expenses breakdown
+   - Fixed vs Variable costs
+
+4. **Recommendations**
+   - Areas for cost reduction
+   - Revenue optimization opportunities
+   - Risk factors to monitor
+
+Format the response as a professional financial report.`
+      }]
+    });
+
+    const report = analysis.content[0].text;
+
+    // Write report back to Excel
+    await updateRange(token, fileId, 'Financial Analysis', 'A1', [[report]]);
+
+    return {
+      data: financialData,
+      analysis: report
+    };
+  }
+
+  structureFinancialData(headers, rows) {
+    return rows.map(row => {
+      const obj = {};
+      headers.forEach((header, i) => {
+        obj[header] = row[i];
+      });
+      return obj;
+    });
+  }
+
+  async calculateRatios(financialData) {
+    // Calculate key financial ratios
+    const message = await this.claude.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: `Calculate financial ratios from this data and return as JSON:
+
+${JSON.stringify(financialData)}
+
+Return format:
+{
+  "gross_margin": number,
+  "operating_margin": number,
+  "net_margin": number,
+  "roe": number,
+  "current_ratio": number
+}`
+      }]
+    });
+
+    return JSON.parse(message.content[0].text);
+  }
+}
+
+// Usage
+async function main() {
+  const analyzer = new FinancialAnalyzer(process.env.ANTHROPIC_API_KEY);
+
+  const token = await getAccessToken();
+  const result = await analyzer.analyzeIncomeStatement(
+    token,
+    'your-file-id',
+    'Income Statement'
+  );
+
+  console.log('Financial Analysis Complete:');
+  console.log(result.analysis);
+}
+
+module.exports = FinancialAnalyzer;
+```
+
+```python financial-analyzer.py
+import anthropic
+import json
+from typing import List, Dict
+from onedrive_client import OneDriveClient
+
+class FinancialAnalyzer:
+    def __init__(self, anthropic_key: str):
+        self.claude = anthropic.Anthropic(api_key=anthropic_key)
+
+    def analyze_income_statement(self, onedrive: OneDriveClient, file_id: str, worksheet_name: str):
+        """Analyze income statement and generate insights"""
+
+        # Fetch financial data from Excel
+        data = onedrive.get_worksheet_data(file_id, worksheet_name)
+
+        # Extract headers and rows
+        headers = data['values'][0]
+        rows = data['values'][1:]
+
+        # Structure data
+        financial_data = self.structure_financial_data(headers, rows)
+
+        # Analyze with Claude
+        message = self.claude.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=8192,
+            messages=[{
+                "role": "user",
+                "content": f"""Analyze this income statement:
+
+{json.dumps(financial_data, indent=2)}
+
+Provide a comprehensive financial analysis including:
+
+1. **Financial Ratios**
+   - Gross Profit Margin
+   - Operating Profit Margin
+   - Net Profit Margin
+   - Return on Revenue
+
+2. **Trend Analysis**
+   - Revenue growth trends
+   - Expense trends
+   - Profitability trends
+
+3. **Cost Structure Analysis**
+   - Cost of Goods Sold as % of Revenue
+   - Operating Expenses breakdown
+   - Fixed vs Variable costs
+
+4. **Recommendations**
+   - Areas for cost reduction
+   - Revenue optimization opportunities
+   - Risk factors to monitor
+
+Format the response as a professional financial report."""
+            }]
+        )
+
+        report = message.content[0].text
+
+        # Write report back to Excel
+        onedrive.update_range(file_id, 'Financial Analysis', 'A1', [[report]])
+
+        return {
+            'data': financial_data,
+            'analysis': report
+        }
+
+    def structure_financial_data(self, headers: List[str], rows: List[List]) -> List[Dict]:
+        """Convert table to structured data"""
+        return [
+            {header: row[i] for i, header in enumerate(headers)}
+            for row in rows
+        ]
+
+    def calculate_ratios(self, financial_data: List[Dict]) -> Dict:
+        """Calculate key financial ratios"""
+        message = self.claude.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=2048,
+            messages=[{
+                "role": "user",
+                "content": f"""Calculate financial ratios from this data and return as JSON:
+
+{json.dumps(financial_data)}
+
+Return format:
+{{
+  "gross_margin": number,
+  "operating_margin": number,
+  "net_margin": number,
+  "roe": number,
+  "current_ratio": number
+}}"""
+            }]
+        )
+
+        return json.loads(message.content[0].text)
+
+# Usage
+if __name__ == '__main__':
+    import os
+
+    analyzer = FinancialAnalyzer(os.getenv('ANTHROPIC_API_KEY'))
+    onedrive = OneDriveClient()
+    onedrive.authenticate()
+
+    result = analyzer.analyze_income_statement(
+        onedrive,
+        'your-file-id',
+        'Income Statement'
+    )
+
+    print('Financial Analysis Complete:')
+    print(result['analysis'])
+```
+</CodeGroup>
+
+## Example 2: Data Quality Checker
+
+Automatically detect and fix data quality issues.
+
+<CodeGroup>
+```javascript data-quality-checker.js
+const Anthropic = require('@anthropic-ai/sdk');
+
+class DataQualityChecker {
+  constructor(anthropicKey) {
+    this.claude = new Anthropic({ apiKey: anthropicKey });
+  }
+
+  async checkDataQuality(data) {
+    const message = await this.claude.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content: `Analyze this dataset for data quality issues:
+
+${JSON.stringify(data, null, 2)}
+
+Check for:
+1. Missing or null values (specify row and column)
+2. Duplicate rows (provide row numbers)
+3. Outliers or anomalies (identify suspicious values)
+4. Inconsistent formatting (dates, numbers, text)
+5. Logical errors (negative quantities, invalid dates, etc.)
+
+Return results as JSON:
+{
+  "summary": {
+    "total_rows": number,
+    "issues_found": number,
+    "quality_score": number (0-100)
+  },
+  "issues": [
+    {
+      "type": "missing_value|duplicate|outlier|format|logical",
+      "severity": "high|medium|low",
+      "row": number,
+      "column": string,
+      "description": string,
+      "current_value": any,
+      "suggested_fix": string
+    }
+  ],
+  "recommendations": [string]
+}`
+      }]
+    });
+
+    return JSON.parse(message.content[0].text);
+  }
+
+  async autoFixIssues(data, issues) {
+    const message = await this.claude.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 8192,
+      messages: [{
+        role: 'user',
+        content: `Given this data and list of issues, generate a cleaned version:
+
+Original Data:
+${JSON.stringify(data, null, 2)}
+
+Issues:
+${JSON.stringify(issues, null, 2)}
+
+Return the cleaned data in the same format, with all issues fixed according to the suggested fixes.`
+      }]
+    });
+
+    return JSON.parse(message.content[0].text);
+  }
+
+  async generateCleaningReport(originalData, cleanedData, issues) {
+    const message = await this.claude.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content: `Generate a data cleaning report:
+
+Original Data Summary:
+- Rows: ${originalData.length}
+- Columns: ${Object.keys(originalData[0] || {}).length}
+
+Issues Found: ${issues.length}
+
+Changes Made:
+${JSON.stringify(issues, null, 2)}
+
+Create a professional data cleaning report including:
+1. Executive summary
+2. Issues found and fixed
+3. Data quality improvement metrics
+4. Recommendations for preventing future issues`
+      }]
+    });
+
+    return message.content[0].text;
+  }
+}
+
+// Usage example
+async function cleanDataset(token, fileId, worksheetName) {
+  const checker = new DataQualityChecker(process.env.ANTHROPIC_API_KEY);
+
+  // Read data
+  const data = await getWorksheetData(token, fileId, worksheetName);
+  const structuredData = data.values.slice(1).map((row, i) => ({
+    row_number: i + 2,
+    ...Object.fromEntries(
+      data.values[0].map((header, j) => [header, row[j]])
+    )
+  }));
+
+  // Check quality
+  console.log('🔍 Checking data quality...');
+  const qualityReport = await checker.checkDataQuality(structuredData);
+
+  console.log(`Found ${qualityReport.issues.length} issues`);
+  console.log(`Quality score: ${qualityReport.quality_score}/100`);
+
+  // Auto-fix issues
+  if (qualityReport.issues.length > 0) {
+    console.log('🔧 Auto-fixing issues...');
+    const cleanedData = await checker.autoFixIssues(
+      structuredData,
+      qualityReport.issues
+    );
+
+    // Generate report
+    const report = await checker.generateCleaningReport(
+      structuredData,
+      cleanedData,
+      qualityReport.issues
+    );
+
+    // Write cleaned data and report back to Excel
+    await updateRange(token, fileId, 'Cleaned Data', 'A1', [
+      Object.keys(cleanedData[0]),
+      ...cleanedData.map(row => Object.values(row))
+    ]);
+
+    await updateRange(token, fileId, 'Cleaning Report', 'A1', [[report]]);
+
+    console.log('✅ Data cleaning complete!');
+    return { cleanedData, report };
+  }
+
+  return { cleanedData: structuredData, report: 'No issues found' };
+}
+
+module.exports = DataQualityChecker;
+```
+</CodeGroup>
+
+## Example 3: Sales Dashboard Generator
+
+Generate insights and visualizations from sales data.
+
+<CodeGroup>
+```javascript sales-dashboard.js
+const Anthropic = require('@anthropic-ai/sdk');
+
+class SalesDashboardGenerator {
+  constructor(anthropicKey) {
+    this.claude = new Anthropic({ apiKey: anthropicKey });
+  }
+
+  async generateDashboard(salesData) {
+    const message = await this.claude.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 8192,
+      messages: [{
+        role: 'user',
+        content: `Analyze this sales data and create a comprehensive dashboard report:
+
+${JSON.stringify(salesData.slice(0, 100), null, 2)}
+... (${salesData.length} total records)
+
+Generate:
+
+## 📊 Executive Summary
+- Total revenue
+- Total orders
+- Average order value
+- Growth vs previous period
+
+## 📈 Key Metrics
+- Top performing products (top 5)
+- Top performing regions
+- Best sales representatives
+- Customer segments
+
+## 🔍 Trends & Insights
+- Revenue trends over time
+- Seasonal patterns
+- Product category performance
+- Customer behavior patterns
+
+## ⚠️ Areas of Concern
+- Declining products
+- Underperforming regions
+- Customer churn indicators
+
+## 💡 Recommendations
+- Strategic actions to increase revenue
+- Product recommendations
+- Marketing suggestions
+- Operational improvements
+
+Format as a professional business dashboard report.`
+      }]
+    });
+
+    return message.content[0].text;
+  }
+
+  async generateForecasts(historicalData) {
+    const message = await this.claude.messages.create({
+      model: 'claude-opus-4-20250514',  // Use Opus for predictions
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content: `Based on this historical sales data, generate forecasts:
+
+${JSON.stringify(historicalData, null, 2)}
+
+Provide:
+1. 3-month revenue forecast
+2. Expected order volume
+3. Predicted top products
+4. Confidence intervals (high/medium/low)
+5. Key assumptions
+6. Risk factors
+
+Return as JSON:
+{
+  "forecast": {
+    "month_1": {"revenue": number, "orders": number, "confidence": string},
+    "month_2": {"revenue": number, "orders": number, "confidence": string},
+    "month_3": {"revenue": number, "orders": number, "confidence": string}
+  },
+  "top_products": [string],
+  "assumptions": [string],
+  "risks": [string]
+}`
+      }]
+    });
+
+    return JSON.parse(message.content[0].text);
+  }
+
+  async identifyAnomalies(salesData) {
+    const message = await this.claude.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content: `Identify anomalies and unusual patterns in this sales data:
+
+${JSON.stringify(salesData, null, 2)}
+
+Look for:
+- Unusual order values (too high or too low)
+- Suspicious transaction patterns
+- Data entry errors
+- Potential fraud indicators
+- Seasonal anomalies
+
+Return as JSON:
+{
+  "anomalies": [
+    {
+      "type": string,
+      "severity": "high|medium|low",
+      "row_number": number,
+      "description": string,
+      "recommendation": string
+    }
+  ]
+}`
+      }]
+    });
+
+    return JSON.parse(message.content[0].text);
+  }
+}
+
+// Usage
+async function createSalesDashboard(token, fileId) {
+  const generator = new SalesDashboardGenerator(process.env.ANTHROPIC_API_KEY);
+
+  // Read sales data
+  const data = await getWorksheetData(token, fileId, 'Sales Data');
+  const salesData = structureData(data.values);
+
+  // Generate dashboard
+  console.log('📊 Generating sales dashboard...');
+  const dashboard = await generator.generateDashboard(salesData);
+
+  // Generate forecasts
+  console.log('📈 Generating forecasts...');
+  const forecasts = await generator.generateForecasts(salesData);
+
+  // Identify anomalies
+  console.log('🔍 Identifying anomalies...');
+  const anomalies = await generator.identifyAnomalies(salesData);
+
+  // Write to Excel
+  await updateRange(token, fileId, 'Dashboard', 'A1', [[dashboard]]);
+  await updateRange(token, fileId, 'Forecasts', 'A1', [[JSON.stringify(forecasts, null, 2)]]);
+  await updateRange(token, fileId, 'Anomalies', 'A1', [[JSON.stringify(anomalies, null, 2)]]);
+
+  console.log('✅ Sales dashboard complete!');
+
+  return { dashboard, forecasts, anomalies };
+}
+
+module.exports = SalesDashboardGenerator;
+```
+</CodeGroup>
+
+## Example 4: Formula Assistant
+
+Generate and explain Excel formulas.
+
+<CodeGroup>
+```javascript formula-assistant.js
+const Anthropic = require('@anthropic-ai/sdk');
+
+class FormulaAssistant {
+  constructor(anthropicKey) {
+    this.claude = new Anthropic({ apiKey: anthropicKey });
+  }
+
+  async generateFormula(requirement, context) {
+    const message = await this.claude.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: `Generate an Excel formula for this requirement:
+
+**Requirement:** ${requirement}
+
+**Context:**
+${JSON.stringify(context, null, 2)}
+
+Provide:
+1. The Excel formula
+2. Step-by-step explanation
+3. Example with sample data
+4. Alternative approaches
+5. Common pitfalls to avoid
+
+Format as clear documentation.`
+      }]
+    });
+
+    return message.content[0].text;
+  }
+
+  async explainFormula(formula, context = null) {
+    const message = await this.claude.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: `Explain this Excel formula in simple terms:
+
+**Formula:** ${formula}
+
+${context ? `**Context:** ${JSON.stringify(context, null, 2)}` : ''}
+
+Provide:
+1. Plain English explanation
+2. What each part does
+3. Example calculation
+4. When to use this formula
+5. Potential improvements`
+      }]
+    });
+
+    return message.content[0].text;
+  }
+
+  async optimizeFormula(formula, problem) {
+    const message = await this.claude.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: `Optimize this Excel formula:
+
+**Current Formula:** ${formula}
+
+**Problem:** ${problem}
+
+Provide:
+1. Optimized formula
+2. What was improved
+3. Performance comparison
+4. When to use each version`
+      }]
+    });
+
+    return message.content[0].text;
+  }
+
+  async debugFormula(formula, error, sampleData) {
+    const message = await this.claude.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: `Debug this Excel formula:
+
+**Formula:** ${formula}
+
+**Error:** ${error}
+
+**Sample Data:**
+${JSON.stringify(sampleData, null, 2)}
+
+Provide:
+1. Root cause of the error
+2. Fixed formula
+3. Explanation of the fix
+4. How to prevent similar errors`
+      }]
+    });
+
+    return message.content[0].text;
+  }
+}
+
+// Usage examples
+async function examples() {
+  const assistant = new FormulaAssistant(process.env.ANTHROPIC_API_KEY);
+
+  // Generate formula
+  const formula1 = await assistant.generateFormula(
+    'Calculate compound annual growth rate (CAGR) over multiple years',
+    {
+      starting_value: 'B2',
+      ending_value: 'B10',
+      years: 8
+    }
+  );
+  console.log('Generated Formula:', formula1);
+
+  // Explain formula
+  const explanation = await assistant.explainFormula(
+    '=SUMIFS(D:D, A:A, ">=2024-01-01", A:A, "<=2024-12-31", B:B, "Product A")',
+    { columnD: 'Revenue', columnA: 'Date', columnB: 'Product' }
+  );
+  console.log('Explanation:', explanation);
+
+  // Optimize formula
+  const optimized = await assistant.optimizeFormula(
+    '=IF(A1>0,IF(A1<100,IF(A1<50,"Small","Medium"),"Large"),"Invalid")',
+    'Too many nested IFs, hard to read'
+  );
+  console.log('Optimized:', optimized);
+
+  // Debug formula
+  const debugged = await assistant.debugFormula(
+    '=VLOOKUP(A1, Sheet2!A:B, 2, FALSE)',
+    '#N/A error appearing for some rows',
+    { A1: 'PROD123', Sheet2: [['PROD123', 100], ['PROD456', 200]] }
+  );
+  console.log('Debug Solution:', debugged);
+}
+
+module.exports = FormulaAssistant;
+```
+</CodeGroup>
+
+## Example 5: Automated Report Generator
+
+Generate comprehensive reports from multiple worksheets.
+
+<CodeGroup>
+```python report-generator.py
+import anthropic
+import json
+from datetime import datetime
+from onedrive_client import OneDriveClient
+
+class ReportGenerator:
+    def __init__(self, anthropic_key: str):
+        self.claude = anthropic.Anthropic(api_key=anthropic_key)
+
+    def generate_comprehensive_report(self, onedrive: OneDriveClient, file_id: str, worksheets: list):
+        """Generate comprehensive report from multiple worksheets"""
+
+        # Collect data from all worksheets
+        all_data = {}
+        for ws_name in worksheets:
+            data = onedrive.get_worksheet_data(file_id, ws_name)
+            all_data[ws_name] = data['values']
+
+        # Generate report
+        message = self.claude.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=16000,
+            messages=[{
+                "role": "user",
+                "content": f"""Generate a comprehensive business report from this workbook data:
+
+{json.dumps(all_data, indent=2)}
+
+Create a professional report with:
+
+# Executive Summary
+High-level overview of key findings and recommendations
+
+# Detailed Analysis
+## Financial Performance
+- Revenue analysis
+- Cost analysis
+- Profitability metrics
+
+## Operational Metrics
+- Key performance indicators
+- Efficiency metrics
+- Trend analysis
+
+## Market Insights
+- Market trends
+- Competitive positioning
+- Customer behavior
+
+# Data Visualizations (describe charts to create)
+- Chart 1: [Description]
+- Chart 2: [Description]
+- Chart 3: [Description]
+
+# Key Findings
+- Finding 1
+- Finding 2
+- Finding 3
+
+# Recommendations
+- Recommendation 1 (with rationale)
+- Recommendation 2 (with rationale)
+- Recommendation 3 (with rationale)
+
+# Risk Assessment
+- Risk factors
+- Mitigation strategies
+
+# Appendix
+- Methodology
+- Data sources
+- Assumptions
+
+Format as a professional business report suitable for executives."""
+            }]
+        )
+
+        report = message.content[0].text
+
+        # Add metadata
+        report_with_metadata = f"""
+# Business Report
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+Source: {file_id}
+Worksheets analyzed: {', '.join(worksheets)}
+
+---
+
+{report}
+"""
+
+        # Write report to new worksheet
+        onedrive.update_range(file_id, 'Executive Report', 'A1', [[report_with_metadata]])
+
+        return report_with_metadata
+
+    def generate_chart_suggestions(self, data: dict):
+        """Generate chart recommendations"""
+
+        message = self.claude.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=4096,
+            messages=[{
+                "role": "user",
+                "content": f"""Based on this data, suggest the best charts to visualize insights:
+
+{json.dumps(data, indent=2)}
+
+For each suggested chart, provide:
+{{
+  "charts": [
+    {{
+      "type": "bar|line|pie|scatter|heatmap|etc",
+      "title": "Chart title",
+      "x_axis": "Column name",
+      "y_axis": "Column name",
+      "purpose": "What insight this chart reveals",
+      "excel_range": "Data range (e.g., A1:B10)"
+    }}
+  ]
+}}"""
+            }]
+        )
+
+        return json.loads(message.content[0].text)
+
+# Usage
+if __name__ == '__main__':
+    import os
+
+    generator = ReportGenerator(os.getenv('ANTHROPIC_API_KEY'))
+    onedrive = OneDriveClient()
+    onedrive.authenticate()
+
+    report = generator.generate_comprehensive_report(
+        onedrive,
+        'your-file-id',
+        ['Sales Data', 'Expenses', 'Inventory', 'Customer Data']
+    )
+
+    print('Report generated successfully!')
+    print(report[:500] + '...')
+```
+</CodeGroup>
+
+## Running the Examples
+
+### Setup
+
+1. **Install dependencies:**
+
+```bash
+npm install @anthropic-ai/sdk @azure/msal-node axios
+```
+
+or
+
+```bash
+pip install anthropic msal requests
+```
+
+2. **Set environment variables:**
+
+```bash
+export ANTHROPIC_API_KEY="your-anthropic-key"
+export MICROSOFT_CLIENT_ID="your-microsoft-client-id"
+export MICROSOFT_CLIENT_SECRET="your-microsoft-client-secret"
+```
+
+3. **Run examples:**
+
+```bash
+node financial-analyzer.js
+node data-quality-checker.js
+node sales-dashboard.js
+```
+
+## Integration with Office Scripts
+
+For Excel Online, you can use Office Scripts:
+
+```typescript
+async function main(workbook: ExcelScript.Workbook) {
+  // Get worksheet
+  const sheet = workbook.getWorksheet("Sheet1");
+  const range = sheet.getUsedRange();
+  const values = range.getValues();
+
+  // Send to your cloud server
+  const response = await fetch('https://your-server.com/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: values })
+  });
+
+  const result = await response.json();
+
+  // Write results
+  const analysisSheet = workbook.addWorksheet("Analysis");
+  analysisSheet.getRange("A1").setValue(result.analysis);
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Error Handling">
+    Always wrap API calls in try-catch blocks with proper error messages
+  </Accordion>
+
+  <Accordion title="Data Sampling">
+    For large datasets, sample data intelligently before sending to Claude
+  </Accordion>
+
+  <Accordion title="Caching">
+    Cache results to avoid redundant API calls for identical queries
+  </Accordion>
+
+  <Accordion title="Validation">
+    Validate Claude's outputs before writing back to Excel
+  </Accordion>
+
+  <Accordion title="Versioning">
+    Keep backups before automated modifications
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="book" href="/api-reference/introduction">
+    Detailed API documentation
+  </Card>
+  <Card title="Best Practices" icon="star" href="/excel-integration">
+    Tips for production deployment
+  </Card>
+</CardGroup>

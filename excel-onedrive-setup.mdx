@@ -1,0 +1,598 @@
+---
+title: "OneDrive Setup"
+description: "Configure OneDrive API access for Excel file integration"
+icon: "cloud"
+---
+
+## Overview
+
+To integrate Excel files from OneDrive with Claude, you need to set up Microsoft Graph API access. This guide walks you through registering an application and obtaining the necessary credentials.
+
+<Info>
+  You'll need a Microsoft account (personal or work/school) to complete this setup.
+</Info>
+
+## Prerequisites
+
+<Card title="Microsoft Account" icon="user">
+  Personal Microsoft account or Microsoft 365 work/school account
+</Card>
+
+## Step 1: Register Application
+
+<Steps>
+  <Step title="Go to Azure Portal">
+    Navigate to [Azure Portal](https://portal.azure.com) and sign in with your Microsoft account.
+  </Step>
+
+  <Step title="Open App Registrations">
+    In the left sidebar, search for and select **App registrations**, or navigate to:
+
+    Azure Active Directory → App registrations
+  </Step>
+
+  <Step title="Create New Registration">
+    Click **+ New registration** and fill in:
+
+    - **Name**: `Excel-Claude Integration`
+    - **Supported account types**: Choose based on your needs:
+      - Single tenant (your organization only)
+      - Multi-tenant (any organization)
+      - Personal Microsoft accounts
+    - **Redirect URI**: Leave blank for now (add later if needed)
+
+    Click **Register**
+  </Step>
+</Steps>
+
+## Step 2: Get Application Credentials
+
+<AccordionGroup>
+  <Accordion title="Application (client) ID">
+    After registration, you'll see the **Overview** page. Copy these values:
+
+    - **Application (client) ID**: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+    - **Directory (tenant) ID**: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+
+    ```bash
+    # Save these as environment variables
+    export MICROSOFT_CLIENT_ID="your-client-id"
+    export MICROSOFT_TENANT_ID="your-tenant-id"
+    ```
+  </Accordion>
+
+  <Accordion title="Create Client Secret">
+    1. In the left sidebar, click **Certificates & secrets**
+    2. Under **Client secrets**, click **+ New client secret**
+    3. Add description: `Excel-Claude Integration Secret`
+    4. Choose expiration period (24 months recommended)
+    5. Click **Add**
+    6. **IMPORTANT**: Copy the secret **Value** immediately (you won't see it again)
+
+    ```bash
+    export MICROSOFT_CLIENT_SECRET="your-client-secret"
+    ```
+
+    <Warning>
+      Store this secret securely. Never commit it to version control.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Step 3: Configure API Permissions
+
+<Steps>
+  <Step title="Add Permissions">
+    In your app registration:
+
+    1. Click **API permissions** in the left sidebar
+    2. Click **+ Add a permission**
+    3. Select **Microsoft Graph**
+    4. Choose **Delegated permissions**
+  </Step>
+
+  <Step title="Select Required Permissions">
+    Add these permissions:
+
+    **Files Permissions**:
+    - `Files.Read` - Read user files
+    - `Files.ReadWrite` - Read and write user files
+    - `Files.Read.All` - Read all files user can access
+    - `Files.ReadWrite.All` - Read and write all files user can access
+
+    **Excel-specific Permissions**:
+    - `Files.ReadWrite` - Sufficient for most use cases
+
+    <Tip>
+      Start with minimal permissions (`Files.ReadWrite`) and add more only if needed.
+    </Tip>
+  </Step>
+
+  <Step title="Grant Admin Consent (Optional)">
+    For organization-wide deployment:
+
+    1. Click **Grant admin consent for [Your Organization]**
+    2. Confirm the consent
+
+    <Note>
+      This step requires admin privileges. For personal use, skip this step.
+    </Note>
+  </Step>
+</Steps>
+
+## Step 4: Authentication Flow
+
+Choose the authentication method based on your use case:
+
+<Tabs>
+  <Tab title="Device Code Flow (Recommended)">
+    Best for server-side applications and CLI tools:
+
+    ```javascript
+    const msal = require('@azure/msal-node');
+
+    const config = {
+      auth: {
+        clientId: process.env.MICROSOFT_CLIENT_ID,
+        authority: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}`
+      }
+    };
+
+    const pca = new msal.PublicClientApplication(config);
+
+    async function getToken() {
+      const deviceCodeRequest = {
+        scopes: ['Files.ReadWrite', 'offline_access'],
+        deviceCodeCallback: (response) => {
+          console.log(response.message);
+        }
+      };
+
+      const response = await pca.acquireTokenByDeviceCode(deviceCodeRequest);
+      return response.accessToken;
+    }
+    ```
+
+    **Usage**:
+    1. Run the code
+    2. Visit the URL shown in console
+    3. Enter the code displayed
+    4. Authorize the application
+  </Tab>
+
+  <Tab title="Client Credentials Flow">
+    For server-to-server automation (requires app-only permissions):
+
+    ```javascript
+    const msal = require('@azure/msal-node');
+
+    const config = {
+      auth: {
+        clientId: process.env.MICROSOFT_CLIENT_ID,
+        authority: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}`,
+        clientSecret: process.env.MICROSOFT_CLIENT_SECRET
+      }
+    };
+
+    const cca = new msal.ConfidentialClientApplication(config);
+
+    async function getToken() {
+      const clientCredentialRequest = {
+        scopes: ['https://graph.microsoft.com/.default']
+      };
+
+      const response = await cca.acquireTokenByClientCredential(
+        clientCredentialRequest
+      );
+      return response.accessToken;
+    }
+    ```
+
+    <Warning>
+      Requires **Application permissions** instead of Delegated permissions.
+      Configure in API permissions as **Application permissions**.
+    </Warning>
+  </Tab>
+
+  <Tab title="Authorization Code Flow">
+    For web applications with user interaction:
+
+    ```javascript
+    const msal = require('@azure/msal-node');
+
+    const config = {
+      auth: {
+        clientId: process.env.MICROSOFT_CLIENT_ID,
+        authority: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}`,
+        clientSecret: process.env.MICROSOFT_CLIENT_SECRET
+      },
+      system: {
+        loggerOptions: {
+          loggerCallback(loglevel, message, containsPii) {
+            console.log(message);
+          },
+          piiLoggingEnabled: false,
+          logLevel: msal.LogLevel.Verbose,
+        }
+      }
+    };
+
+    const cca = new msal.ConfidentialClientApplication(config);
+    const redirectUri = "http://localhost:3000/redirect";
+
+    // Step 1: Get authorization URL
+    async function getAuthUrl() {
+      const authCodeUrlParameters = {
+        scopes: ["Files.ReadWrite"],
+        redirectUri: redirectUri,
+      };
+
+      return await cca.getAuthCodeUrl(authCodeUrlParameters);
+    }
+
+    // Step 2: Exchange code for token
+    async function getTokenFromCode(code) {
+      const tokenRequest = {
+        code: code,
+        scopes: ["Files.ReadWrite"],
+        redirectUri: redirectUri,
+      };
+
+      return await cca.acquireTokenByCode(tokenRequest);
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Step 5: Access Excel Files
+
+Once authenticated, use Microsoft Graph API to access Excel files:
+
+```javascript
+const axios = require('axios');
+
+async function listExcelFiles(accessToken) {
+  const response = await axios.get(
+    'https://graph.microsoft.com/v1.0/me/drive/root/children',
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      },
+      params: {
+        '$filter': "endswith(name,'.xlsx')",
+        '$select': 'id,name,lastModifiedDateTime,size'
+      }
+    }
+  );
+
+  return response.data.value;
+}
+
+async function getWorksheetData(accessToken, fileId, worksheetName) {
+  const response = await axios.get(
+    `https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/worksheets/${worksheetName}/usedRange`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    }
+  );
+
+  return response.data;
+}
+
+async function updateCell(accessToken, fileId, worksheetName, cell, value) {
+  await axios.patch(
+    `https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/worksheets/${worksheetName}/range(address='${cell}')`,
+    {
+      values: [[value]]
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+}
+```
+
+## Complete Setup Example
+
+Here's a complete Node.js setup:
+
+<CodeGroup>
+```javascript server.js
+const express = require('express');
+const msal = require('@azure/msal-node');
+const axios = require('axios');
+
+const app = express();
+
+// MSAL configuration
+const config = {
+  auth: {
+    clientId: process.env.MICROSOFT_CLIENT_ID,
+    authority: `https://login.microsoftonline.com/common`,
+    clientSecret: process.env.MICROSOFT_CLIENT_SECRET
+  }
+};
+
+const pca = new msal.PublicClientApplication(config);
+let tokenCache = null;
+
+// Get access token
+async function getAccessToken() {
+  if (tokenCache && tokenCache.expiresOn > new Date()) {
+    return tokenCache.accessToken;
+  }
+
+  const deviceCodeRequest = {
+    scopes: ['Files.ReadWrite', 'offline_access'],
+    deviceCodeCallback: (response) => {
+      console.log(response.message);
+    }
+  };
+
+  const response = await pca.acquireTokenByDeviceCode(deviceCodeRequest);
+  tokenCache = response;
+  return response.accessToken;
+}
+
+// List Excel files
+app.get('/files', async (req, res) => {
+  try {
+    const token = await getAccessToken();
+    const response = await axios.get(
+      'https://graph.microsoft.com/v1.0/me/drive/root/children',
+      {
+        headers: { 'Authorization': `Bearer ${token}` },
+        params: { '$filter': "endswith(name,'.xlsx')" }
+      }
+    );
+    res.json(response.data.value);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get worksheet data
+app.get('/workbook/:fileId/:worksheet', async (req, res) => {
+  try {
+    const token = await getAccessToken();
+    const { fileId, worksheet } = req.params;
+
+    const response = await axios.get(
+      `https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/worksheets/${worksheet}/usedRange`,
+      {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }
+    );
+
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
+```
+
+```json package.json
+{
+  "name": "excel-onedrive-integration",
+  "version": "1.0.0",
+  "dependencies": {
+    "@azure/msal-node": "^2.6.0",
+    "axios": "^1.6.0",
+    "express": "^4.18.2"
+  }
+}
+```
+
+```bash .env.example
+MICROSOFT_CLIENT_ID=your-client-id-here
+MICROSOFT_TENANT_ID=common
+MICROSOFT_CLIENT_SECRET=your-client-secret-here
+```
+</CodeGroup>
+
+## Python Alternative
+
+<CodeGroup>
+```python onedrive_client.py
+from msal import PublicClientApplication
+import requests
+import os
+
+CLIENT_ID = os.getenv('MICROSOFT_CLIENT_ID')
+TENANT_ID = os.getenv('MICROSOFT_TENANT_ID', 'common')
+SCOPES = ['Files.ReadWrite', 'offline_access']
+
+class OneDriveClient:
+    def __init__(self):
+        self.app = PublicClientApplication(
+            CLIENT_ID,
+            authority=f"https://login.microsoftonline.com/{TENANT_ID}"
+        )
+        self.token = None
+
+    def authenticate(self):
+        """Authenticate using device code flow"""
+        flow = self.app.initiate_device_flow(scopes=SCOPES)
+        print(flow['message'])
+
+        result = self.app.acquire_token_by_device_flow(flow)
+        if 'access_token' in result:
+            self.token = result['access_token']
+            return True
+        return False
+
+    def list_excel_files(self):
+        """List all Excel files in OneDrive"""
+        headers = {'Authorization': f'Bearer {self.token}'}
+        response = requests.get(
+            'https://graph.microsoft.com/v1.0/me/drive/root/children',
+            headers=headers,
+            params={'$filter': "endswith(name,'.xlsx')"}
+        )
+        return response.json()['value']
+
+    def get_worksheet_data(self, file_id, worksheet_name='Sheet1'):
+        """Get data from a worksheet"""
+        headers = {'Authorization': f'Bearer {self.token}'}
+        url = f'https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/workbook/worksheets/{worksheet_name}/usedRange'
+        response = requests.get(url, headers=headers)
+        return response.json()
+
+    def update_range(self, file_id, worksheet_name, range_address, values):
+        """Update a range of cells"""
+        headers = {
+            'Authorization': f'Bearer {self.token}',
+            'Content-Type': 'application/json'
+        }
+        url = f'https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/workbook/worksheets/{worksheet_name}/range(address=\'{range_address}\')'
+        response = requests.patch(
+            url,
+            headers=headers,
+            json={'values': values}
+        )
+        return response.json()
+
+# Usage example
+if __name__ == '__main__':
+    client = OneDriveClient()
+
+    if client.authenticate():
+        files = client.list_excel_files()
+        print(f"Found {len(files)} Excel files")
+
+        if files:
+            data = client.get_worksheet_data(files[0]['id'])
+            print(f"Worksheet data: {data}")
+```
+
+```txt requirements.txt
+msal==1.26.0
+requests==2.31.0
+python-dotenv==1.0.0
+```
+</CodeGroup>
+
+## Testing Your Setup
+
+Verify your OneDrive integration works:
+
+```bash
+# Install dependencies
+npm install @azure/msal-node axios
+
+# Set environment variables
+export MICROSOFT_CLIENT_ID="your-client-id"
+export MICROSOFT_CLIENT_SECRET="your-client-secret"
+
+# Run test script
+node test-onedrive.js
+```
+
+<CodeGroup>
+```javascript test-onedrive.js
+const { getAccessToken, listExcelFiles, getWorksheetData } = require('./onedrive-client');
+
+async function test() {
+  console.log('🔐 Authenticating...');
+  const token = await getAccessToken();
+  console.log('✅ Authentication successful!');
+
+  console.log('\n📁 Listing Excel files...');
+  const files = await listExcelFiles(token);
+  console.log(`✅ Found ${files.length} Excel files:`);
+  files.forEach(file => {
+    console.log(`  - ${file.name} (ID: ${file.id})`);
+  });
+
+  if (files.length > 0) {
+    console.log('\n📊 Reading first file...');
+    const data = await getWorksheetData(token, files[0].id, 'Sheet1');
+    console.log('✅ Data retrieved:');
+    console.log(JSON.stringify(data, null, 2));
+  }
+}
+
+test().catch(console.error);
+```
+</CodeGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Error: AADSTS65001 - User consent required">
+    **Solution**: User needs to consent to permissions
+
+    1. Ensure redirect URI is configured
+    2. Add `prompt: 'consent'` to auth request
+    3. Or grant admin consent in Azure Portal
+  </Accordion>
+
+  <Accordion title="Error: InvalidAuthenticationToken">
+    **Solution**: Token expired or invalid
+
+    - Implement token refresh logic
+    - Request `offline_access` scope for refresh tokens
+    - Cache tokens and check expiration
+  </Accordion>
+
+  <Accordion title="Error: 404 File not found">
+    **Solution**: Check file ID and permissions
+
+    - Verify file exists in OneDrive
+    - Ensure app has permission to access the file
+    - Check if file is in shared location
+  </Accordion>
+
+  <Accordion title="Rate limit exceeded">
+    **Solution**: Implement retry logic with backoff
+
+    ```javascript
+    async function withRetry(fn, maxRetries = 3) {
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          return await fn();
+        } catch (error) {
+          if (error.response?.status === 429) {
+            const retryAfter = error.response.headers['retry-after'] || Math.pow(2, i);
+            await sleep(retryAfter * 1000);
+            continue;
+          }
+          throw error;
+        }
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Secure Storage" icon="lock">
+    Store credentials in environment variables or secret management services (AWS Secrets Manager, Azure Key Vault)
+  </Card>
+  <Card title="Minimal Permissions" icon="shield">
+    Request only the permissions your application needs
+  </Card>
+  <Card title="Token Encryption" icon="key">
+    Encrypt tokens at rest and in transit
+  </Card>
+  <Card title="Audit Logging" icon="list">
+    Log all file access for security auditing
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<Card title="Claude API Integration" icon="brain" href="/excel-claude-api">
+  Now set up Claude API to analyze your Excel data
+</Card>
