@@ -54,6 +54,12 @@
               "excel-claude-api",
               "excel-examples"
             ]
+          },
+          {
+            "group": "Dream Interpreter",
+            "pages": [
+              "dream-interpreter"
+            ]
           }
         ]
       },
