@@ -1,0 +1,193 @@
+---
+title: "Vanliga fallgropar"
+description: "9 vanliga misstag som leder till underkänd uppgift i BY130G – och hur du undviker dem"
+---
+
+# Vanliga fallgropar — BY130G Vägprojektering
+
+Dessa misstag är de vanligaste orsakerna till att uppgiften underkänns. Läs igenom
+dem **innan** du börjar rita — de flesta är enkla att undvika om du vet om dem.
+
+---
+
+## Fallgrop 1 — Fel skala på ritningarna
+
+<Warning>
+**Följd:** Ritningen är oläsbar eller uppfyller inte kraven → avslag.
+</Warning>
+
+**Hur det uppstår:** Du exporterar från Model space, eller sätter fel scale i viewport.
+
+**Hur du undviker det:**
+- Skapa alltid en **Layout-flik** per ritning
+- Dubbelklicka in i viewport → skriv kommandot `ZOOM` → ange `1/200XP` för 1:200
+- Lås viewporten efteråt (högerklicka viewport → Display Locked → Yes)
+- Kontrollera i Page Setup att pappersstorlek = A1
+
+| Ritning | Rätt skala |
+|---------|-----------|
+| Planritning | 1:200 |
+| Profilritning horisontell | 1:500 |
+| Profilritning vertikal | 1:50 |
+| Normalsektion | 1:50 |
+
+---
+
+## Fallgrop 2 — Alignment utan längdmätning
+
+<Warning>
+**Följd:** Ingen vet vägens längd → avslag direkt, utan undantag.
+</Warning>
+
+**Hur det uppstår:** Du ritar alignmentet men glömmer lägga till stationeringsetiketter.
+
+**Hur du undviker det:**
+- Annotate → Add Labels → Alignment → **Add Alignment Labels**
+- Välj label-typ: "Stationing" (major + minor stations)
+- Kontrollera att stationeringen syns längs hela sträckan i planritningens layout
+
+---
+
+## Fallgrop 3 — Profilritning utan vertikalöverförstoring
+
+<Warning>
+**Följd:** Vägens profil ser helt platt ut → misstolkning av geometrin.
+</Warning>
+
+**Hur det uppstår:** Du sätter samma skala horisontellt och vertikalt (t.ex. 1:500 båda).
+
+**Hur du undviker det:**
+- Öppna Profile View Properties → välj rätt skalor:
+  - Horisontell: 1:500
+  - Vertikal: 1:50
+- Överförstoringen ger en faktor **5×** på vertikalen — det är korrekt och avsiktligt
+- Ange skalorna explicit i ritningshuvudet: "H 1:500 / V 1:50"
+
+---
+
+## Fallgrop 4 — Befintlig markyta saknas i profil
+
+<Warning>
+**Följd:** Man kan inte se hur mycket vägen schaktas eller fylls → kritisk information saknas.
+</Warning>
+
+**Hur det uppstår:** Du exporterar Profile View men har inte lagt till Existing Ground-ytan.
+
+**Hur du undviker det:**
+- Högerklicka Profile View → Profile View Properties → Profiles-fliken
+- Kontrollera att **EG-profilen** (Existing Ground längs alignment) är med och synlig
+- Ge den en tydlig stil — t.ex. grå streckad linje
+
+---
+
+## Fallgrop 5 — Terassyta glömd
+
+<Warning>
+**Följd:** Ofullständig väg — terrassen visar var schaktet/fyllningen slutar → avslag.
+</Warning>
+
+**Hur det uppstår:** Assembly saknar Datum-kod, eller ytan exporteras inte från korridoren.
+
+**Hur du undviker det:**
+- Kontrollera i Corridor Properties → Surfaces att du har skapat **båda** ytorna:
+  - Top Surface (körbaneyta)
+  - Terrace / Datum Surface (underkant överbyggnad)
+- Verifiera att Terrace-ytan syns i Profile View
+- Verifiera att den syns i normalsektionen som en separat linje
+
+---
+
+## Fallgrop 6 — Vägkanter inte synliga i plan
+
+<Warning>
+**Följd:** Planritningen är förvirrande och otydlig → bedömaren kan inte avgöra vägbredden.
+</Warning>
+
+**Hur det uppstår:** Korridor-lagret för edge-of-pavement är avslaget eller har fel färg.
+
+**Hur du undviker det:**
+- Öppna **Layer Properties Manager** och leta efter lager med namn som:
+  - `C-ROAD-EDGE` eller `Corridor_[namn]`
+- Se till att lagret är på (ON) och har en synlig färg (inte vit mot vit bakgrund)
+- Kontrollera i Print Preview att kanterna faktiskt syns
+
+---
+
+## Fallgrop 7 — Höjdkottext saknas
+
+<Warning>
+**Följd:** Läsaren vet inte vägens absoluta höjd → ritningen saknar kritisk information.
+</Warning>
+
+**Hur det uppstår:** Elevation labels läggs inte till på Top surface.
+
+**Hur du undviker det:**
+
+I planritningen:
+- Annotate → Add Labels → Surface → **Spot Elevations** längs alignmentet
+- Alternativt: Add Labels → Alignment → Profile Geometry (höjder i profil-etiketter)
+
+I profilritningen:
+- Kontrollera att Y-axeln i Profile View visar höjdskalor (absolutahöjder, inte relativa)
+- Profile View Properties → Elevations → sätt lämpliga min/max-värden
+
+---
+
+## Fallgrop 8 — Normalsektion utan materialbenämning
+
+<Warning>
+**Följd:** Oklar vägens uppbyggnad — bedömaren vet inte vilket material som avses → avslag.
+</Warning>
+
+**Hur det uppstår:** Du visar tvärsnittet men lägger ingen text med lagernamn och tjocklekar.
+
+**Hur du undviker det:**
+Lägg till **Mtext** direkt i normalsektionens layout med minst:
+
+```
+Topyta / Slitlager (AC): 50 mm
+Bindlager (ABb): 60 mm
+Bärlager (AG): 150 mm
+Förstärkningslager: 300 mm
+```
+
+Alternativt: använd **Section View Bands** för automatisk materialtext om din assembly
+har korrekt kodning.
+
+---
+
+## Fallgrop 9 — PDF-export i fel format
+
+<Warning>
+**Följd:** Ritningarna är snedvridna, saknar element eller har fel skala i PDF:en.
+</Warning>
+
+**Hur det uppstår:** Export från Model space, eller fel plot-inställningar.
+
+**Hur du undviker det:**
+- Exportera **alltid från Layout-flik**, inte från Model space
+- Välj plotter: `DWG To PDF.pc3`
+- Paper size: `ISO A1 (841.00 × 594.00 mm)`
+- Plot area: **Layout** (inte Extents eller Window)
+- Kontrollera förhandsvisning (Preview) innan du sparar
+
+---
+
+## Snabbkoll — underkänds-risker
+
+| Risk | Koll | Åtgärd |
+|------|------|--------|
+| Saknad stationering | Alignment i plan utan siffror | Add Alignment Labels → Stationing |
+| Fel viewport-skala | Skala stämmer inte med krav | Zoom XP-kommando + lås viewport |
+| Platt profil | Horiz och vert skala identiska | Profile View Properties → separat vert skala |
+| Saknad EG i profil | Profilen visar bara designprofilen | Profile View Properties → lägg till EG-profil |
+| Saknad terassyta | Ingen Terrace Surface i Toolspace | Corridor Properties → Surfaces → lägg till |
+| Osynliga vägkanter | Lager är av | Layer Manager → slå på korridor-lager |
+| Saknad höjdtext | Ingen elevation på topyta | Add Labels → Spot Elevations |
+| Ingen materialtext i sektion | Tvärsnitt utan lagerinfo | Mtext med lagertjocklekar |
+| Exporterat från Model space | Fel skala i PDF | Exportera från Layout-flik |
+
+<Info>
+Klar med kontrollen? Gå till [Inlämningskrav](/civil3d-deliverables) för en fullständig
+checklista per ritning innan du exporterar PDF.
+</Info>
