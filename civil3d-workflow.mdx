@@ -1,0 +1,305 @@
+---
+title: "Arbetsordning i Civil 3D"
+description: "14 obligatoriska steg från ritningsförberedelse till PDF-export i Civil 3D 2025"
+---
+
+# Arbetsordning i Civil 3D 2025
+
+Ordningen nedan är **obligatorisk** — hoppar du på stegen i fel ordning riskerar du
+att behöva börja om. Civil 3D är parametriskt: varje objekt är länkat till föregående.
+
+<Warning>
+Skapa aldrig corridor eller corridor surfaces innan alignment, profil och assembly är
+helt klara. En ändring i alignment efter att korridoren skapats kräver att du
+regenererar allt nedströms.
+</Warning>
+
+---
+
+<Steps>
+  <Step title="Steg 1 — Ritningsförberedelse">
+    **Öppna underlaget och kontrollera grundinställningar.**
+
+    - Öppna `BY130G_underlag.dwg` i Civil 3D 2025
+    - Kontrollera **enheter**: Drawing Settings → Units → Meters
+    - Kontrollera **koordinatsystem**: rätt SWEREF99-zon (vanligtvis SWEREF99 TM)
+    - Spara en kopia som `BY130G_[dittnamn].dwg` — arbeta aldrig direkt i originalet
+    - Stäng av lager som inte behövs för överskådlighet
+
+    ```
+    Kommando: UNITS → Drawing Settings → Coordinate System
+    ```
+  </Step>
+
+  <Step title="Steg 2 — Befintlig markyta">
+    **Importera och undersök existing ground surface.**
+
+    - Kontrollera att underlaget innehåller en yta kallad "Existing Ground" eller liknande
+    - Högerklicka på ytan i Toolspace → Surface Properties → bekräfta att den är rätt
+    - Slå på **Quick Profile** längs ett dragläge för att se terrängen
+    - Om ingen yta finns: skapa från punktmolnet eller TIN-data som medföljer underlaget
+
+    <Info>
+    Existing Ground-ytan används i profilritningen och i korridorns cut/fill-beräkning.
+    Se till att den täcker hela ditt planerade vägsträckning + buffert.
+    </Info>
+  </Step>
+
+  <Step title="Steg 3 — Alignment (mittlinje)">
+    **Skapa vägens centerline.**
+
+    - Gå till **Home → Alignment → Alignment Creation Tools**
+    - Rita alignment längs önskat stråk — respektera minsta kurvaradie per vägklass
+    - Namnge alignmentet tydligt, t.ex. "Ny väg centerline"
+    - Kontrollera att längd och radier stämmer med vägens klass
+    - Lägg till **stationing** (stationeringsetiketter): Annotate → Add Labels → Alignment → Add Alignment Labels
+
+    ```
+    Kommando: CREATEALIGNMENT
+    Minsta kurvaradie: beror på klass och hastighet (se kursens Plan & miljö-del)
+    ```
+
+    <Warning>
+    Glöm inte att lägga till stationeringstext (längdmätning) på alignmentet —
+    saknas det är planritningen underkänd.
+    </Warning>
+  </Step>
+
+  <Step title="Steg 4 — Alignment-profil (befintlig mark)">
+    **Skapa längdprofil längs alignmentet.**
+
+    - Markera alignmentet → högerklicka → **Create Sample Lines** (om du vill ha tvärsnitt senare) 
+    - Gå till **Home → Profile → Create Surface Profile**
+    - Välj ditt alignment + Existing Ground-ytan → lägg till → OK
+    - Civil 3D skapar en "EG-profil" (befintlig mark längs mittlinjen)
+    - Skapa en **Profile View** för att visualisera: Home → Profile View → Create Profile View
+
+    ```
+    Kommando: DRAWPROFILINVIEW
+    ```
+
+    Ange rätt skalor i Profile View Wizard:
+    - Horisontell skala: 1:500
+    - Vertikal skala: 1:50
+  </Step>
+
+  <Step title="Steg 5 — Designprofil (ny väg)">
+    **Rita den nya vägens höjdprofil ovanpå befintlig mark.**
+
+    - I Profile View → **Home → Profile → Profile Creation Tools**
+    - Rita designprofilen med tangenter och vertikalkurvor (PVI-punkter)
+    - Håll koll på **lutningar** (max/min beroende på vägklass)
+    - Kontrollera att du inte har för brant schakt/fyllnad mot befintlig mark
+    - Namnge: "Top of Road Design" eller liknande
+
+    Lägg till **vertikal kurv-labels**: Annotate → Add Labels → Profile → Vertical Geometry
+
+    <Info>
+    Designprofilen styr vägens höjd. Terassytan skapas automatiskt av assemblyt
+    (se steg 6) med ett visst avstånd under topyta.
+    </Info>
+  </Step>
+
+  <Step title="Steg 6 — Assembly (normalsektion)">
+    **Definiera vägens tvärsnittsuppbyggnad.**
+
+    - Gå till **Home → Design → Assembly → Create Assembly**
+    - Placera assembly-baseline i ritningen (utanför körbart område)
+    - Lägg till subassembly-komponenter från **Tool Palettes**:
+      - Körbanor (Lane): t.ex. `LaneOutsideSuper`
+      - Vägrenar / skulder
+      - Diken: t.ex. `LinkSlopeToSurface`
+      - Sluttningar: t.ex. `DaylightMinSlope`
+    - Dubbelklicka på varje subassembly och ange **dimensioner och material** (bredd, tjocklek, lutning)
+
+    Typisk uppbyggnad (inifrån ut):
+    ```
+    Centerline
+    ├── Körfält (3,5 m × 2)
+    ├── Vägren (0,5–1,0 m)
+    ├── Dike
+    └── Sluttning mot befintlig mark
+    ```
+
+    <Warning>
+    Normalsektionen ska ha materialbenämning i ritningen. Ange lagertjocklekar redan
+    i assembly-subassembly-egenskaperna (t.ex. Pavement Depth = 0,05 m för beläggning).
+    </Warning>
+  </Step>
+
+  <Step title="Steg 7 — Corridor (3D-väg)">
+    **Generera vägen i 3D baserat på alignment + profil + assembly.**
+
+    - Gå till **Home → Design → Corridor → Create Corridor**
+    - Välj: alignment → designprofil → assembly
+    - Kontrollera frekvens (Frequency): t.ex. var 5:e meter längs raka, var 1:a meter i kurvor
+    - Bygg korridoren: **Rebuild Corridor**
+
+    ```
+    Kommando: CREATECORRIDOR
+    ```
+
+    Kontrollera i 3D-vy (objektvisa granskning) att korridoren ser korrekt ut:
+    - Inga underliga förskjutningar i kurvor
+    - Korridor hänger inte i luften eller sjunker ned i marken
+  </Step>
+
+  <Step title="Steg 8 — Corridor Surfaces">
+    **Extrahera ytor från korridoren.**
+
+    - Markera korridorn → högerklicka → **Corridor Properties → Surfaces**
+    - Skapa **Top Surface**: välj Top-kod från subassembly
+    - Skapa **Terrace Surface**: välj Datum-kod (underliggande yta)
+    - Klicka **OK** → korridorn byggs om med ytorna
+
+    Kontrollera i Toolspace → Surfaces att båda ytorna finns:
+    - "Corridor - Top"
+    - "Corridor - Terrace" (eller Datum)
+
+    <Info>
+    Dessa två ytor, plus Existing Ground, är de tre som ska visas i profilritningen.
+    </Info>
+  </Step>
+
+  <Step title="Steg 9 — Planritning">
+    **Förbered plan-layout för export.**
+
+    - Gå till en **Layout-flik** (inte Model space)
+    - Skapa en viewport och ställ in scale = **1:200**
+    - Säkerställ att följande lager är synliga:
+      - Alignment (centerline)
+      - Corridor edges (vägkanter)
+      - Stationeringsetiketter
+      - Höjdkottext på topyta
+      - Arbetsområdesgräns
+    - Lägg till ritningshuvud (titel, skala, datum, ditt namn)
+
+    ```
+    Viewport scale: 1:200
+    Lager att kontrollera: C-ROAD-EDGE, C-ALIGNT, C-ALIGNT-STAT
+    ```
+  </Step>
+
+  <Step title="Steg 10 — Profilritning">
+    **Förbered profil-layout för export.**
+
+    - Gå till en ny **Layout-flik**
+    - Skapa en viewport med Profile View
+    - Ange i Profile View Style: Horiz 1:500 / Vert 1:50
+    - Kontrollera att **tre ytor** syns i profilen: EG, Top, Terrace
+    - Kontrollera att radier, lutningar och stationering är märkta
+
+    ```
+    Profile View Wizard → Scale → Horizontal 1:500 / Vertical 1:50
+    ```
+  </Step>
+
+  <Step title="Steg 11 — Normalsektioner (tvärsnitt)">
+    **Exportera tvärsektioner längs vägen.**
+
+    - Se till att **Sample Lines** är skapade längs alignmentet (Steg 4)
+    - Gå till **Home → Profile Views → Create Multiple Section Views**
+    - Välj alignment, sample line-grupp, och ytor att visa (EG + Top + Terrace)
+    - Placera sektionerna i ritningen (välj ett tomt område i Model space)
+    - Skapa en ny Layout-flik och sätt viewport scale = **1:50**
+
+    Välj representativa snitt att visa (t.ex. vart 20:e meter + kritiska punkter).
+  </Step>
+
+  <Step title="Steg 12 — Etiketter & dimensioner">
+    **Lägg till all nödvändig text och mätning.**
+
+    Planritning:
+    - Annotate → Add Labels → Alignment → Stationing (längdmätning)
+    - Annotate → Add Labels → Surface → Spot Elevation (höjdkota på topyta)
+
+    Profilritning:
+    - Annotate → Add Labels → Profile → Vertical Geometry (radier)
+    - Annotate → Add Labels → Profile → Grade/Slope (lutningar)
+
+    Normalsektion:
+    - Lägg till Mtext med materialbenämning: "Beläggning 50 mm", "Bärlager 150 mm", "Frostskydd 300 mm"
+    - Dimensioneringslinjer för körbanebredd och sluttningsförhållanden
+
+    <Warning>
+    Kontrollera att inga labels krockar med geometrin och att texten är läsbar i 1:200-skala.
+    </Warning>
+  </Step>
+
+  <Step title="Steg 13 — Layouter">
+    **Förbered alla tre layouter för utskrift.**
+
+    | Layout | Viewport scale | Pappersstorlek |
+    |--------|---------------|----------------|
+    | Planritning | 1:200 | A1 |
+    | Profilritning | 1:500 H / 1:50 V | A1 |
+    | Normalsektion | 1:50 | A1 |
+
+    - Lås varje viewport (VPLOCK eller dubbelklicka utanför → Lock Display)
+    - Kontrollera att plot-area täcker hela ritningsinnehållet
+    - Gå in i Page Setup Manager → välj rätt plotter (DWG to PDF) och pappersstorlek A1
+  </Step>
+
+  <Step title="Steg 14 — PDF-export">
+    **Exportera tre PDF-filer.**
+
+    - Gå till varje Layout-flik
+    - File → Plot (eller Ctrl+P)
+    - Välj: Plotter = "DWG To PDF.pc3", Paper size = ISO A1, Plot area = Layout
+    - Kontrollera förhandsvisning — alla element synliga?
+    - Spara som:
+      - `Planritning_[dittnamn].pdf`
+      - `Profilritning_[dittnamn].pdf`
+      - `Normalsektion_[dittnamn].pdf`
+
+    ```
+    Alternativt: Output → Export → Export to DWF/PDF
+    ```
+
+    <Warning>
+    Exportera ALLTID från Layout-flik, aldrig från Model space. Model space ger
+    felaktig skala och förvrängd utskrift.
+    </Warning>
+  </Step>
+</Steps>
+
+---
+
+## Sammanfattande flödesschema
+
+```
+Underlag (.dwg)
+    │
+    ▼
+Existing Ground Surface
+    │
+    ▼
+Alignment (mittlinje + stationering)
+    │
+    ▼
+Surface Profile (EG längs alignment)
+    │
+    ▼
+Design Profile (ny vägs höjd)
+    │
+    ▼
+Assembly (normalsektion-definition)
+    │
+    ▼
+Corridor (3D-väg)
+    │
+    ▼
+Corridor Surfaces (Top + Terrace)
+    │
+    ├──▶ Planritning (Layout 1:200)
+    ├──▶ Profilritning (Layout 1:500/1:50)
+    └──▶ Normalsektioner (Layout 1:50)
+              │
+              ▼
+         PDF-export × 3
+```
+
+<Info>
+Se [Inlämningskrav](/civil3d-deliverables) för exakt vad varje ritning måste innehålla,
+och [Vanliga fallgropar](/civil3d-pitfalls) för misstag att undvika.
+</Info>

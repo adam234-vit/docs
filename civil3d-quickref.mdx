@@ -1,0 +1,203 @@
+---
+title: "Snabbreferens"
+description: "Civil 3D 2025 kommandon, skalor, checklista och tips för BY130G"
+---
+
+# Snabbreferens — Civil 3D 2025
+
+Kompakt referens för de viktigaste kommandona, skalorna och inställningarna
+du behöver i BY130G-projektet.
+
+---
+
+## Skalreferens
+
+| Ritning | Horisontell skala | Vertikal skala | Format |
+|---------|------------------|----------------|--------|
+| Planritning | 1:200 | — | A1 PDF |
+| Profilritning | 1:500 | 1:50 | A1 PDF |
+| Normalsektion | 1:50 | 1:50 | A1 PDF |
+
+**Viewport-kommandon för rätt skala:**
+
+```
+1:200  → ZOOM → 1/200XP
+1:500  → ZOOM → 1/500XP
+1:50   → ZOOM → 1/50XP
+```
+
+---
+
+## Viktiga Civil 3D-kommandon
+
+### Ytor (Surfaces)
+
+| Vad | Kommando / Sökväg |
+|-----|------------------|
+| Skapa yta från punkter | Home → Create Ground Data → Surfaces → Create Surface |
+| Visa ytegenskaper | Toolspace → Surfaces → [namn] → högerklicka → Surface Properties |
+| Quick Profile längs linje | Home → Profile → Quick Profile |
+
+### Alignment
+
+| Vad | Kommando / Sökväg |
+|-----|------------------|
+| Skapa alignment | Home → Alignment → Alignment Creation Tools |
+| Redigera alignment | Markera → Alignment Editing Tools i ribbon |
+| Lägg till stationering | Annotate → Add Labels → Alignment → Add Alignment Labels |
+| Alignment Properties | Toolspace → Alignments → [namn] → högerklicka → Alignment Properties |
+
+```
+Snabbkommando: CREATEALIGNMENT
+```
+
+### Profil
+
+| Vad | Kommando / Sökväg |
+|-----|------------------|
+| Skapa yt-profil (EG) | Home → Profile → Create Surface Profile |
+| Skapa Profile View | Home → Profile View → Create Profile View |
+| Skapa designprofil | Home → Profile → Profile Creation Tools (inuti Profile View) |
+| Lägg till vertikal geometri-labels | Annotate → Add Labels → Profile → Vertical Geometry |
+| Lägg till lutnings-labels | Annotate → Add Labels → Profile → Grade/Slope |
+
+```
+Snabbkommando: DRAWPROFILINVIEW
+```
+
+### Assembly & Corridor
+
+| Vad | Kommando / Sökväg |
+|-----|------------------|
+| Skapa assembly | Home → Design → Assembly → Create Assembly |
+| Öppna Tool Palettes (subassemblies) | View → Tool Palettes (eller Ctrl+3) |
+| Skapa corridor | Home → Design → Corridor → Create Corridor |
+| Redigera corridor | Markera → Corridor Properties i ribbon |
+| Skapa corridor surfaces | Corridor Properties → Surfaces |
+| Bygg om corridor | Markera → Rebuild (eller högerklicka → Rebuild Corridor) |
+
+```
+Snabbkommando: CREATECORRIDOR
+```
+
+### Sektioner
+
+| Vad | Kommando / Sökväg |
+|-----|------------------|
+| Skapa sample lines | Home → Cross Sections → Sample Lines |
+| Skapa section views | Home → Cross Sections → Create Multiple Section Views |
+| Lägg till ytor i section | Section View Properties → Sections-fliken |
+
+### Annotationer & Labels
+
+| Vad | Kommando / Sökväg |
+|-----|------------------|
+| Höjdkota (spot elevation) | Annotate → Add Labels → Surface → Spot Elevations on Grid |
+| Stationering | Annotate → Add Labels → Alignment → Stationing |
+| Lutning/gradient | Annotate → Add Labels → Profile → Grade/Slope |
+| Radier | Annotate → Add Labels → Alignment → Curve (horisontell) |
+
+### Layout & Export
+
+| Vad | Kommando / Sökväg |
+|-----|------------------|
+| Ny layout-flik | Högerklicka layout-flik → New Layout |
+| Page Setup | Högerklicka layout-flik → Page Setup Manager |
+| Lås viewport | Högerklicka viewport → Display Locked → Yes |
+| Exportera PDF | Output → Export → Export to DWF/PDF, eller File → Plot → DWG To PDF.pc3 |
+
+```
+Snabbkommando: PLOT (Ctrl+P)
+```
+
+---
+
+## Rekommenderade lagerkontroller
+
+Slå på dessa lager innan export:
+
+| Lager (typiskt namn) | Innehåll |
+|---------------------|----------|
+| `C-ALIGNT` | Alignment (centerline) |
+| `C-ALIGNT-STAT` | Stationeringstext |
+| `C-ROAD-EDGE` | Vägkanter (corridor edges) |
+| `C-SURF-*` | Ytor (kontrollera alla corridor-surfaces) |
+| `C-ANNO-*` | Annoteringar och labels |
+
+<Info>
+Lagernamnen kan variera beroende på hur projektet är uppsatt. Sök i Layer Manager
+efter `ROAD`, `ALIGN`, `CORR` för att hitta rätt lager.
+</Info>
+
+---
+
+## Inlämnings-checklista (snabbversion)
+
+### Planritning 1:200
+- [ ] Alignment syns med stationering
+- [ ] Vägkanter (corridor edges) synliga
+- [ ] Höjdkottext på topyta
+- [ ] Arbetsområdesgräns med
+- [ ] Layout-viewport låst på 1:200
+
+### Profilritning H 1:500 / V 1:50
+- [ ] Existing Ground-kurva syns
+- [ ] Designprofil (Top) syns
+- [ ] Terrace-profil syns
+- [ ] Radier märkta
+- [ ] Lutningar märkta
+- [ ] Stationering längs X-axeln
+- [ ] Absoluta höjder längs Y-axeln
+
+### Normalsektion 1:50
+- [ ] Befintlig mark syns
+- [ ] Topyta, beläggning, bärlager, frostskydd märkta med tjocklekar
+- [ ] Sluttningsförhållanden märkta (t.ex. 1:2)
+- [ ] Körbanebredd angiven
+
+### PDF
+- [ ] Exporterat från Layout-flik (inte Model space)
+- [ ] A1-format
+- [ ] Tre separata filer
+
+---
+
+## Vanliga felmeddelanden och lösningar
+
+| Felmeddelande / Problem | Orsak | Lösning |
+|------------------------|-------|---------|
+| Korridoren bygger inte om | Alignment eller profil saknar data | Kontrollera att designprofil är kopplad till alignment |
+| Surface visar inga konturer | Ytan är tom | Kontrollera att punkter/TIN-data är inlagda |
+| Profile View ser fel ut | Fel yt-profil vald | Profile View Properties → ta bort felaktig profil |
+| Viewport-skala ändras vid zoom | Viewport ej låst | Högerklicka viewport → Display Locked → Yes |
+| PDF-export ger fel skala | Exporterar från Model space | Växla till Layout-flik innan export |
+| Stationering saknas i PDF | Labels-lager är av | Layer Manager → slå på annotations-lager |
+
+---
+
+## Tips för effektivt arbete
+
+<CardGroup cols={2}>
+  <Card title="Spara ofta" icon="floppy-disk">
+    Civil 3D kan krascha vid tung beräkning. Spara manuellt med Ctrl+S var 10:e minut,
+    och ha Autosave på (Options → Open and Save → Autosave: 10 min).
+  </Card>
+  <Card title="Arbeta i rätt ordning" icon="list-ol">
+    Ändra aldrig alignment efter att korridoren är byggd utan att sedan regenerera
+    corridor, surfaces och views. Se [arbetsordningen](/civil3d-workflow).
+  </Card>
+  <Card title="Namnge allt tydligt" icon="tag">
+    Ge alignment, profiler, assembly och corridor tydliga namn (t.ex.
+    "BY130G Centerline", "Top Design Profile") — det förenklar felsökning.
+  </Card>
+  <Card title="Kontrollera i 3D" icon="cube">
+    Använd objektvridning (Orbit, 3D Realistic) för att granska att korridoren
+    ser korrekt ut i terrängen innan du gör layouterna.
+  </Card>
+</CardGroup>
+
+<Info>
+Behöver du hjälp med ett specifikt steg? Se [Arbetsordningen](/civil3d-workflow)
+för detaljerade instruktioner, eller [Vanliga fallgropar](/civil3d-pitfalls)
+för felsökning.
+</Info>

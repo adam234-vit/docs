@@ -1,0 +1,140 @@
+---
+title: "Inlämningskrav"
+description: "Exakta krav per ritning för BY130G Civil 3D vägprojektering"
+---
+
+# Inlämningskrav — BY130G Vägprojektering
+
+Tre ritningar ska lämnas in i **PDF-format, A1-storlek**. Alla ritningar skapas från
+Layouts i Civil 3D och exporteras med rätt viewport-skala.
+
+---
+
+## Ritning 1 — Planritning
+
+<CardGroup cols={2}>
+  <Card title="Skala" icon="magnifying-glass">
+    **1:200**
+  </Card>
+  <Card title="Format" icon="file-pdf">
+    A1, PDF
+  </Card>
+</CardGroup>
+
+### Obligatoriskt innehåll
+
+- **Nya vägkanter** — synliga linjer för körbanebredd
+- **Alignment med längdmätning** — mittlinje med stationeringstext längs hela sträckan
+- **Höjd på ny väg (topyta)** — höjdkottext (elevation label) utmed alignmentet
+- **Arbetsområdesgräns** — från underlaget, ev. justerad av dig
+
+### Vanliga missar
+
+<Warning>
+- Glömmer **längdmätning** (stationering) på alignmentet — avslag direkt
+- Felaktig skala eller ursprung — kontrollera viewport scale = 1:200
+- Vägkanter inte synliga — kontrollera att korridor-lager är påslagna
+- Höjdtext saknas — lägg till alignment profile labels eller spot elevations
+</Warning>
+
+---
+
+## Ritning 2 — Profilritning (Längdsektion)
+
+<CardGroup cols={2}>
+  <Card title="Skala horisontell" icon="arrows-left-right">
+    **1:500**
+  </Card>
+  <Card title="Skala vertikal" icon="arrows-up-down">
+    **1:50** (5× vertikal överförstoring)
+  </Card>
+</CardGroup>
+
+### Obligatoriskt innehåll
+
+- **Befintlig markyta** (Existing Ground) — grå/svart linje
+- **Ny vägtopyta** (Top Surface) — röd/blå linje
+- **Terassyta** (Terrace Surface) — separat linje under topyta
+- **Radier & lutningar** — label-rad under profilen
+- **Längdmätning** — stationering längs horisontell axel
+- **Höjdkota för ny väg** — absoluta höjder längs vertikal axel
+
+### Vanliga missar
+
+<Warning>
+- Fel skalförhållande — ofta glömmer man den **vertikala överförstoringen** (1:50 vert ≠ 1:500 horiz)
+- Befintlig yta saknas — se till att Existing Ground-ytan är importerad och synlig
+- Terassyta glömd — assembly måste innehålla Terrace surface och den måste exporteras
+- Radieinformation saknas — lägg till vertical curve labels i profile view
+- Höjdnivåer ej märkta — kontrollera grid & elevation labels i Profile View Style
+</Warning>
+
+---
+
+## Ritning 3 — Normalsektion (Tvärsektion)
+
+<CardGroup cols={2}>
+  <Card title="Skala" icon="magnifying-glass">
+    **1:50**
+  </Card>
+  <Card title="Format" icon="file-pdf">
+    A1, PDF
+  </Card>
+</CardGroup>
+
+### Obligatoriskt innehåll
+
+- **Befintlig mark** — existing ground line i tvärsnitt
+- **Vägens lager** (med text/benämning):
+  - Topyta / Slitlager (beläggning) — t.ex. 50 mm
+  - Bärlager — t.ex. 150 mm
+  - Frostskydd / Förstärkningslager — t.ex. 300 mm
+- **Sluttningar & diken** — sidosluttningar (1:2, 1:1,5 etc.) tydligt markerade
+- **Konstruktiv info/kommentar** — text som beskriver uppbyggnaden
+
+### Vanliga missar
+
+<Warning>
+- För **liten sektion** — sektionen ser ihoptryckt ut, svårt att läsa måtten
+- Ingen **materialbenämning** — måste ha text: "Beläggning 50 mm", "Bärlager 150 mm" etc.
+- Sluttningsförhållanden ej tydliga — ange lutning som t.ex. 1:2 eller 50%
+- Dimensioner saknas — ange bredder och tjocklekar med måttsättning
+</Warning>
+
+---
+
+## Checklista före inlämning
+
+<Steps>
+  <Step title="Planritning — kontrollera">
+    - [ ] Alignment syns med stationering (längdmätning)
+    - [ ] Vägkanter synliga
+    - [ ] Höjdtext på topyta
+    - [ ] Arbetsområdesgräns med
+    - [ ] Viewport scale = 1:200 i Layout
+  </Step>
+  <Step title="Profilritning — kontrollera">
+    - [ ] Tre ytor: Existing Ground + Top Surface + Terrace Surface
+    - [ ] Radier och lutningar märkta
+    - [ ] Stationering längs X-axeln
+    - [ ] Absolutahöjder längs Y-axeln
+    - [ ] Horiz 1:500 / Vert 1:50
+  </Step>
+  <Step title="Normalsektion — kontrollera">
+    - [ ] Befintlig mark syns
+    - [ ] Alla lager namngivna med tjocklek
+    - [ ] Sluttningar märkta med förhållande
+    - [ ] Mått på körbanebredd
+    - [ ] Viewport scale = 1:50 i Layout
+  </Step>
+  <Step title="PDF-export — kontrollera">
+    - [ ] Exportera från Layout (inte Model space)
+    - [ ] Pappersstorlek A1
+    - [ ] Alla lager synliga i utskriften
+    - [ ] Filnamn tydligt: Planritning.pdf, Profilritning.pdf, Normalsektion.pdf
+  </Step>
+</Steps>
+
+<Info>
+Se [Arbetsordning i Civil 3D](/civil3d-workflow) för hur du skapar varje element steg för steg.
+</Info>

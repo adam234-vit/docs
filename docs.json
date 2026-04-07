@@ -11,6 +11,21 @@
   "navigation": {
     "tabs": [
       {
+        "tab": "BY130G – Civil 3D",
+        "groups": [
+          {
+            "group": "Vägprojektering",
+            "pages": [
+              "civil3d-introduction",
+              "civil3d-deliverables",
+              "civil3d-workflow",
+              "civil3d-pitfalls",
+              "civil3d-quickref"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Guides",
         "groups": [
           {
